@@ -49,7 +49,7 @@ const state = {
     },
     deepPerceptron: {
         running: false,
-        speed: 3,
+        speed: 1.5,
         epoch: 0
     },
     normalizingFlow: {
@@ -1407,8 +1407,13 @@ class TransformerVisualizer {
         this.layers = [];
         this.attentionWeights = [];
         this.particles = [];
+        this.phase = 0; // 0: embedding, 1: attention, 2: context, 3: feed-forward, 4: output
+        this.phaseProgress = 0;
+        this.animationTime = 0;
+        this.attentionFocus = 0; // Which token is currently being attended to
         
         this.resize();
+        this.setupLayers();
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
@@ -1420,12 +1425,14 @@ class TransformerVisualizer {
     }
     
     setupLayers() {
-        const layerCount = 5; // Input, Attention, Context, FFN, Output
+        const layerCount = 5; // Embedding, Self-Attention, Context, Feed-Forward, Output
         const tokenCount = this.tokens.length;
-        const layerColors = ['#388e3c', '#f57f17', '#e65100', '#f57f17', '#388e3c'];
+        const layerColors = ['#4A90E2', '#f57f17', '#9B59B6', '#E74C3C', '#27AE60'];
+        const layerNames = ['Embed', 'Attention', 'Context', 'FFN', 'Output'];
+        
         // Responsive node radius and padding
         const nodeRadius = Math.max(10, Math.min(15, this.canvas.width / 50));
-        const padding = Math.max(40, Math.min(80, this.canvas.width / 10));
+        const padding = Math.max(60, Math.min(100, this.canvas.width / 10));
         
         this.layers = [];
         const layerSpacing = (this.canvas.width - 2 * padding) / (layerCount - 1);
@@ -1433,155 +1440,269 @@ class TransformerVisualizer {
         for (let l = 0; l < layerCount; l++) {
             const nodes = [];
             const x = padding + l * layerSpacing;
-            const verticalSpacing = (this.canvas.height - 100) / tokenCount;
+            const verticalSpacing = (this.canvas.height - 120) / tokenCount;
             
             for (let t = 0; t < tokenCount; t++) {
                 nodes.push({
                     x: x,
-                    y: 50 + t * verticalSpacing + verticalSpacing / 2,
+                    y: 60 + t * verticalSpacing + verticalSpacing / 2,
                     radius: nodeRadius,
                     activation: 0,
+                    targetActivation: 0,
                     color: layerColors[l],
-                    token: this.tokens[t]
+                    token: this.tokens[t],
+                    layerName: layerNames[l]
                 });
             }
             
             this.layers.push(nodes);
         }
         
-        // Initialize attention weights
+        // Initialize attention weights with realistic patterns
+        // "it" (index 4) should attend strongly to "cat" (index 1)
         this.attentionWeights = [];
         for (let i = 0; i < tokenCount; i++) {
             this.attentionWeights[i] = [];
             for (let j = 0; j < tokenCount; j++) {
-                this.attentionWeights[i][j] = Math.random();
+                // Create meaningful attention patterns
+                if (i === 4 && j === 1) { // "mat" looks at "cat"
+                    this.attentionWeights[i][j] = 0.8;
+                } else if (i === j) {
+                    this.attentionWeights[i][j] = 0.5; // Self-attention
+                } else if (Math.abs(i - j) === 1) {
+                    this.attentionWeights[i][j] = 0.3; // Adjacent tokens
+                } else {
+                    this.attentionWeights[i][j] = 0.1 + Math.random() * 0.2;
+                }
             }
         }
     }
     
     update() {
-        if (!state.transformer.running) return;
+        if (!state.transformer.running || !this.layers || this.layers.length === 0) return;
         
-        // Simulate processing through layers
-        const currentLayer = Math.floor(Date.now() / 500) % this.layers.length;
+        this.animationTime += 0.02 * state.transformer.speed;
         
-        this.layers.forEach((layer, idx) => {
-            layer.forEach(node => {
-                if (idx === currentLayer) {
-                    node.activation = 0.8 + Math.random() * 0.2;
-                } else if (idx < currentLayer) {
-                    node.activation = 0.5;
+        // Smooth phase progression
+        this.phaseProgress += 0.008 * state.transformer.speed;
+        
+        if (this.phaseProgress >= 1.0) {
+            this.phaseProgress = 0;
+            this.phase = (this.phase + 1) % this.layers.length;
+            
+            // Move attention focus when in attention phase
+            if (this.phase === 1) {
+                this.attentionFocus = (this.attentionFocus + 1) % this.tokens.length;
+            }
+        }
+        
+        // Update layer activations smoothly
+        this.layers.forEach((layer, layerIdx) => {
+            layer.forEach((node, tokenIdx) => {
+                // Calculate target activation based on current phase
+                if (layerIdx < this.phase) {
+                    node.targetActivation = 0.7;
+                } else if (layerIdx === this.phase) {
+                    // Smooth activation during current phase
+                    if (layerIdx === 1 && this.attentionWeights[this.attentionFocus] && 
+                        this.attentionWeights[this.attentionFocus][tokenIdx] !== undefined) { 
+                        // Attention layer - show attention pattern
+                        const weight = this.attentionWeights[this.attentionFocus][tokenIdx];
+                        node.targetActivation = 0.3 + weight * 0.7;
+                    } else {
+                        node.targetActivation = 0.5 + Math.sin(this.animationTime + tokenIdx) * 0.3;
+                    }
                 } else {
-                    node.activation = 0.1;
+                    node.targetActivation = 0.1;
                 }
+                
+                // Smooth interpolation
+                node.activation += (node.targetActivation - node.activation) * 0.15;
             });
         });
         
-        // Create particles
-        if (Math.random() < 0.15) {
-            const fromLayer = this.layers[Math.max(0, currentLayer - 1)];
-            const toLayer = this.layers[currentLayer];
+        // Create smooth particle flow
+        if (Math.random() < 0.25 * state.transformer.speed) {
+            const currentLayerIdx = this.phase;
+            const nextLayerIdx = (this.phase + 1) % this.layers.length;
             
-            if (fromLayer && toLayer) {
-                const fromNode = fromLayer[Math.floor(Math.random() * fromLayer.length)];
-                const toNode = toLayer[Math.floor(Math.random() * toLayer.length)];
+            if (this.layers[currentLayerIdx] && this.layers[nextLayerIdx]) {
+                const tokenIdx = Math.floor(Math.random() * this.tokens.length);
+                const fromNode = this.layers[currentLayerIdx][tokenIdx];
+                const toNode = this.layers[nextLayerIdx][tokenIdx];
                 
+                if (fromNode && toNode) {
+                    this.particles.push({
+                        x: fromNode.x,
+                        y: fromNode.y,
+                        targetX: toNode.x,
+                        targetY: toNode.y,
+                        progress: 0,
+                        life: 1,
+                        color: fromNode.color
+                    });
+                }
+            }
+        }
+        
+        // During attention phase, create cross-attention particles
+        if (this.phase === 1 && this.layers[1] && Math.random() < 0.15 * state.transformer.speed) {
+            const attentionLayer = this.layers[1];
+            const fromIdx = this.attentionFocus;
+            const toIdx = Math.floor(Math.random() * this.tokens.length);
+            
+            if (fromIdx !== toIdx && attentionLayer[fromIdx] && attentionLayer[toIdx] &&
+                this.attentionWeights[fromIdx] && this.attentionWeights[fromIdx][toIdx] > 0.3) {
                 this.particles.push({
-                    x: fromNode.x,
-                    y: fromNode.y,
-                    targetX: toNode.x,
-                    targetY: toNode.y,
+                    x: attentionLayer[fromIdx].x,
+                    y: attentionLayer[fromIdx].y,
+                    targetX: attentionLayer[toIdx].x,
+                    targetY: attentionLayer[toIdx].y,
                     progress: 0,
-                    life: 1
+                    life: 1,
+                    color: '#f57f17',
+                    isAttention: true
                 });
             }
         }
         
-        // Update particles
+        // Update particles with smooth motion
         this.particles = this.particles.filter(p => {
-            p.progress += 0.02;
-            p.life -= 0.01;
+            p.progress += 0.03;
+            p.life -= 0.015;
             return p.life > 0 && p.progress < 1;
         });
     }
     
     draw() {
+        if (!this.ctx || !this.canvas) return;
+        
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Draw attention connections (light lines between attention layer tokens)
-        if (this.layers.length > 1) {
+        // Draw attention connections when in attention phase
+        if (this.phase === 1 && this.layers.length > 1 && this.attentionWeights.length > 0) {
             const attentionLayer = this.layers[1];
-            for (let i = 0; i < attentionLayer.length; i++) {
-                for (let j = 0; j < attentionLayer.length; j++) {
-                    if (i !== j) {
-                        const alpha = this.attentionWeights[i][j] * 0.2;
-                        this.ctx.strokeStyle = `rgba(247, 127, 23, ${alpha})`;
-                        this.ctx.lineWidth = this.attentionWeights[i][j] * 2;
-                        this.ctx.beginPath();
-                        this.ctx.moveTo(attentionLayer[i].x, attentionLayer[i].y);
-                        this.ctx.lineTo(attentionLayer[j].x, attentionLayer[j].y);
-                        this.ctx.stroke();
-                    }
+            if (!attentionLayer || this.attentionFocus >= attentionLayer.length) return;
+            
+            const focusNode = attentionLayer[this.attentionFocus];
+            if (!focusNode) return;
+            
+            for (let j = 0; j < attentionLayer.length; j++) {
+                if (this.attentionFocus !== j && this.attentionWeights[this.attentionFocus]) {
+                    const weight = this.attentionWeights[this.attentionFocus][j];
+                    const alpha = weight * 0.6 * this.phaseProgress;
+                    const targetNode = attentionLayer[j];
+                    
+                    if (!targetNode) continue;
+                    
+                    this.ctx.strokeStyle = `rgba(247, 127, 23, ${alpha})`;
+                    this.ctx.lineWidth = 1 + weight * 3;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(focusNode.x, focusNode.y);
+                    this.ctx.lineTo(targetNode.x, targetNode.y);
+                    this.ctx.stroke();
+                    
+                    // Draw arrow head
+                    const angle = Math.atan2(targetNode.y - focusNode.y, targetNode.x - focusNode.x);
+                    const arrowSize = 8;
+                    const arrowX = targetNode.x - Math.cos(angle) * (targetNode.radius + 5);
+                    const arrowY = targetNode.y - Math.sin(angle) * (targetNode.radius + 5);
+                    
+                    this.ctx.fillStyle = `rgba(247, 127, 23, ${alpha})`;
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(arrowX, arrowY);
+                    this.ctx.lineTo(
+                        arrowX - arrowSize * Math.cos(angle - Math.PI / 6),
+                        arrowY - arrowSize * Math.sin(angle - Math.PI / 6)
+                    );
+                    this.ctx.lineTo(
+                        arrowX - arrowSize * Math.cos(angle + Math.PI / 6),
+                        arrowY - arrowSize * Math.sin(angle + Math.PI / 6)
+                    );
+                    this.ctx.closePath();
+                    this.ctx.fill();
                 }
             }
         }
         
-        // Draw layer connections
+        // Draw layer connections (faded)
         for (let i = 0; i < this.layers.length - 1; i++) {
             const layer = this.layers[i];
             const nextLayer = this.layers[i + 1];
             
-            layer.forEach(node1 => {
-                nextLayer.forEach(node2 => {
-                    this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.15)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(node1.x, node1.y);
-                    this.ctx.lineTo(node2.x, node2.y);
-                    this.ctx.stroke();
-                });
+            layer.forEach((node1, idx1) => {
+                const node2 = nextLayer[idx1]; // Connect same token positions
+                this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.1)';
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.moveTo(node1.x, node1.y);
+                this.ctx.lineTo(node2.x, node2.y);
+                this.ctx.stroke();
             });
         }
         
         // Draw particles
         this.particles.forEach(p => {
-            const x = p.x + (p.targetX - p.x) * p.progress;
-            const y = p.y + (p.targetY - p.y) * p.progress;
+            const x = p.x + (p.targetX - p.x) * this.easeInOutCubic(p.progress);
+            const y = p.y + (p.targetY - p.y) * this.easeInOutCubic(p.progress);
             
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 5);
-            gradient.addColorStop(0, `rgba(102, 126, 234, ${p.life})`);
-            gradient.addColorStop(1, `rgba(102, 126, 234, 0)`);
+            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
+            
+            // Convert hex color to RGB
+            let rgb = '102, 126, 234'; // default
+            if (p.color && p.color.startsWith('#')) {
+                const hex = p.color.slice(1);
+                const r = parseInt(hex.slice(0, 2), 16);
+                const g = parseInt(hex.slice(2, 4), 16);
+                const b = parseInt(hex.slice(4, 6), 16);
+                rgb = `${r}, ${g}, ${b}`;
+            }
+            
+            gradient.addColorStop(0, `rgba(${rgb}, ${p.life})`);
+            gradient.addColorStop(1, `rgba(${rgb}, 0)`);
             
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, 5, 0, Math.PI * 2);
+            this.ctx.arc(x, y, p.isAttention ? 4 : 5, 0, Math.PI * 2);
             this.ctx.fill();
         });
         
         // Draw nodes with token labels
         this.layers.forEach((layer, layerIdx) => {
             layer.forEach((node, tokenIdx) => {
-                this.drawNode(node);
+                this.drawNode(node, layerIdx === 1 && tokenIdx === this.attentionFocus && this.phase === 1);
                 
                 // Show token label on first layer
                 if (layerIdx === 0) {
                     this.ctx.fillStyle = '#333';
-                    this.ctx.font = 'bold 12px sans-serif';
+                    this.ctx.font = 'bold 13px sans-serif';
                     this.ctx.textAlign = 'right';
-                    this.ctx.fillText(node.token, node.x - node.radius - 10, node.y + 4);
+                    this.ctx.fillText(node.token, node.x - node.radius - 12, node.y + 4);
                 }
             });
         });
+        
+        // Draw phase indicator
+        this.ctx.fillStyle = '#333';
+        this.ctx.font = 'bold 14px sans-serif';
+        this.ctx.textAlign = 'center';
+        const phaseNames = ['Embedding Input', 'Computing Self-Attention', 'Gathering Context', 'Feed-Forward Processing', 'Generating Output'];
+        this.ctx.fillText(phaseNames[this.phase], this.canvas.width / 2, 25);
     }
     
-    drawNode(node) {
+    easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+    }
+    
+    drawNode(node, isHighlighted) {
         // Glow
-        const glowRadius = node.radius + 6;
+        const glowRadius = node.radius + (isHighlighted ? 10 : 6);
         const gradient = this.ctx.createRadialGradient(
             node.x, node.y, node.radius,
             node.x, node.y, glowRadius
         );
-        gradient.addColorStop(0, `${node.color}30`);
+        const glowAlpha = isHighlighted ? '60' : '30';
+        gradient.addColorStop(0, `${node.color}${glowAlpha}`);
         gradient.addColorStop(1, `${node.color}00`);
         
         this.ctx.fillStyle = gradient;
@@ -1599,7 +1720,7 @@ class TransformerVisualizer {
         // Border
         this.ctx.globalAlpha = 1;
         this.ctx.strokeStyle = node.color;
-        this.ctx.lineWidth = 2;
+        this.ctx.lineWidth = isHighlighted ? 3 : 2;
         this.ctx.beginPath();
         this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         this.ctx.stroke();
@@ -1622,16 +1743,20 @@ function initTransformer() {
         document.getElementById('transformer-start').addEventListener('click', () => {
             state.transformer.running = !state.transformer.running;
             document.getElementById('transformer-start').textContent = 
-                state.transformer.running ? 'Pause Processing' : 'Process Sequence';
+                state.transformer.running ? 'Pause Animation' : 'Start Attention';
             if (state.transformer.running) animateTransformer();
         });
         
         document.getElementById('transformer-reset').addEventListener('click', () => {
             state.transformer.running = false;
+            transformerViz.phase = 0;
+            transformerViz.phaseProgress = 0;
+            transformerViz.attentionFocus = 0;
+            transformerViz.animationTime = 0;
             transformerViz.setupLayers();
             transformerViz.particles = [];
             transformerViz.draw();
-            document.getElementById('transformer-start').textContent = 'Process Sequence';
+            document.getElementById('transformer-start').textContent = 'Start Attention';
         });
         
         document.getElementById('transformer-speed').addEventListener('input', (e) => {
@@ -1648,9 +1773,7 @@ function animateTransformer() {
     transformerViz.update();
     transformerViz.draw();
     
-    setTimeout(() => {
-        requestAnimationFrame(animateTransformer);
-    }, 100);
+    requestAnimationFrame(animateTransformer);
 }
 
 // ====== Deep Perceptron Visualization ======
@@ -1663,6 +1786,9 @@ class DeepPerceptronVisualizer {
         this.ctx = canvas.getContext('2d');
         this.layers = [];
         this.particles = [];
+        this.currentLayer = 0;
+        this.layerProgress = 0;
+        this.cycleProgress = 0;
         this.resize();
         this.setupLayers();
     }
@@ -1679,7 +1805,6 @@ class DeepPerceptronVisualizer {
         const layerSizes = [3, 5, 4, 3, 2];
         this.layers = [];
         
-        // Responsive node radius based on canvas size
         const nodeRadius = Math.max(8, Math.min(15, w / 50));
         const spacing = w / (layerSizes.length + 1);
         
@@ -1694,6 +1819,7 @@ class DeepPerceptronVisualizer {
                     y: nodeSpacing * (i + 1),
                     radius: nodeRadius,
                     activation: 0,
+                    targetActivation: 0,
                     color: layerIdx === 0 ? '#4A90E2' : 
                            layerIdx === layerSizes.length - 1 ? '#50E3C2' : '#9B59B6'
                 });
@@ -1703,57 +1829,130 @@ class DeepPerceptronVisualizer {
     }
     
     update() {
-        // Decay activations smoothly
-        this.layers.forEach((layer, idx) => {
+        if (!this.layers || this.layers.length === 0) return;
+        
+        const speed = state.deepPerceptron.speed || 3;
+        
+        // Smooth activation interpolation
+        this.layers.forEach(layer => {
+            if (!layer) return;
             layer.forEach(node => {
-                node.activation *= 0.95; // Smooth decay
+                if (!node) return;
+                const diff = (node.targetActivation || 0) - (node.activation || 0);
+                node.activation = (node.activation || 0) + diff * 0.15;
             });
         });
         
-        // Spawn particles
-        if (Math.random() < 0.3) {
-            const sourceLayer = Math.floor(Math.random() * (this.layers.length - 1));
-            const sourceNode = this.layers[sourceLayer][Math.floor(Math.random() * this.layers[sourceLayer].length)];
-            const targetNode = this.layers[sourceLayer + 1][Math.floor(Math.random() * this.layers[sourceLayer + 1].length)];
+        // Linear cycle progress
+        this.cycleProgress += 0.005 * speed;
+        
+        // Reset cycle after completing all layers
+        if (this.cycleProgress >= 1.0) {
+            this.cycleProgress = 0;
+            this.currentLayer = 0;
+            this.layerProgress = 0;
             
-            // Activate source node
-            sourceNode.activation = 1.0;
+            // Clear particles
+            this.particles = [];
             
-            this.particles.push({
-                x: sourceNode.x,
-                y: sourceNode.y,
-                targetX: targetNode.x,
-                targetY: targetNode.y,
-                progress: 0,
-                life: 1,
-                targetNode: targetNode
+            // Reset all nodes
+            this.layers.forEach(layer => {
+                if (!layer) return;
+                layer.forEach(node => {
+                    if (!node) return;
+                    node.activation = 0;
+                    node.targetActivation = 0;
+                });
             });
+            
+            // Activate input layer
+            if (this.layers[0]) {
+                this.layers[0].forEach(node => {
+                    if (node) node.targetActivation = 0.8 + Math.random() * 0.2;
+                });
+            }
+            return;
         }
         
-        // Update particles
-        this.particles = this.particles.filter(p => {
-            p.progress += 0.05;
-            p.life -= 0.02;
+        // Determine which layer should be processing
+        const totalLayers = this.layers.length;
+        const layerDuration = 1.0 / totalLayers;
+        const targetLayer = Math.min(totalLayers - 1, Math.floor(this.cycleProgress / layerDuration));
+        
+        // Smoothly transition between layers
+        if (targetLayer !== this.currentLayer && targetLayer < totalLayers) {
+            // Spawn particles to next layer
+            const currentLayerNodes = this.layers[this.currentLayer];
+            const nextLayerNodes = this.layers[targetLayer];
             
-            // Activate target node when particle arrives
-            if (p.progress >= 0.9 && p.targetNode) {
-                p.targetNode.activation = 1.0;
-                p.targetNode = null; // Only activate once
+            if (currentLayerNodes && nextLayerNodes) {
+                nextLayerNodes.forEach((targetNode, idx) => {
+                    if (!targetNode) return;
+                    
+                    // Calculate activation from previous layer
+                    let weightedSum = 0;
+                    let totalWeight = 0;
+                    
+                    currentLayerNodes.forEach(sourceNode => {
+                        if (!sourceNode) return;
+                        const weight = 0.5 + Math.random() * 0.5;
+                        weightedSum += (sourceNode.activation || 0) * weight;
+                        totalWeight += weight;
+                    });
+                    
+                    // Set target activation (ReLU-like)
+                    targetNode.targetActivation = Math.min(1.0, Math.max(0.1, weightedSum / totalWeight));
+                    
+                    // Create particles from a few source nodes
+                    const numParticles = Math.min(2, currentLayerNodes.length);
+                    for (let i = 0; i < numParticles; i++) {
+                        const sourceNode = currentLayerNodes[Math.floor(Math.random() * currentLayerNodes.length)];
+                        if (!sourceNode || (sourceNode.activation || 0) < 0.2) continue;
+                        
+                        this.particles.push({
+                            x: sourceNode.x,
+                            y: sourceNode.y,
+                            targetX: targetNode.x,
+                            targetY: targetNode.y,
+                            progress: 0,
+                            life: 1,
+                            speed: 0.025
+                        });
+                    }
+                });
             }
             
+            this.currentLayer = targetLayer;
+        }
+        
+        // Update particles smoothly
+        this.particles = this.particles.filter(p => {
+            if (!p) return false;
+            p.progress = Math.min(1, (p.progress || 0) + (p.speed || 0.025));
+            p.life = Math.max(0, (p.life || 1) - 0.012);
             return p.life > 0 && p.progress < 1;
         });
     }
     
     draw() {
+        if (!this.ctx || !this.canvas || !this.layers) return;
+        
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
         // Draw connections
         for (let i = 0; i < this.layers.length - 1; i++) {
-            this.layers[i].forEach(node1 => {
-                this.layers[i + 1].forEach(node2 => {
-                    this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.15)';
-                    this.ctx.lineWidth = 1;
+            const layer = this.layers[i];
+            const nextLayer = this.layers[i + 1];
+            if (!layer || !nextLayer) continue;
+            
+            layer.forEach(node1 => {
+                if (!node1) return;
+                nextLayer.forEach(node2 => {
+                    if (!node2) return;
+                    
+                    const isActive = (i === this.currentLayer || i === this.currentLayer - 1);
+                    this.ctx.strokeStyle = isActive ? 'rgba(200, 200, 200, 0.25)' : 'rgba(200, 200, 200, 0.08)';
+                    this.ctx.lineWidth = isActive ? 1.5 : 1;
                     this.ctx.beginPath();
                     this.ctx.moveTo(node1.x, node1.y);
                     this.ctx.lineTo(node2.x, node2.y);
@@ -1764,11 +1963,14 @@ class DeepPerceptronVisualizer {
         
         // Draw particles
         this.particles.forEach(p => {
-            const x = p.x + (p.targetX - p.x) * p.progress;
-            const y = p.y + (p.targetY - p.y) * p.progress;
+            if (!p) return;
             
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 5);
-            gradient.addColorStop(0, `rgba(102, 126, 234, ${p.life})`);
+            const t = this.easeInOutCubic(p.progress || 0);
+            const x = (p.x || 0) + ((p.targetX || 0) - (p.x || 0)) * t;
+            const y = (p.y || 0) + ((p.targetY || 0) - (p.y || 0)) * t;
+            
+            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
+            gradient.addColorStop(0, `rgba(102, 126, 234, ${p.life || 0})`);
             gradient.addColorStop(1, `rgba(102, 126, 234, 0)`);
             
             this.ctx.fillStyle = gradient;
@@ -1778,27 +1980,64 @@ class DeepPerceptronVisualizer {
         });
         
         // Draw nodes
-        this.layers.forEach(layer => {
+        this.layers.forEach((layer, layerIdx) => {
+            if (!layer) return;
+            
             layer.forEach(node => {
+                if (!node) return;
+                
+                const activation = Math.max(0, Math.min(1, node.activation || 0));
+                
+                // Glow for active nodes
+                if (activation > 0.3) {
+                    const glowRadius = (node.radius || 10) + 8;
+                    const gradient = this.ctx.createRadialGradient(
+                        node.x, node.y, node.radius || 10,
+                        node.x, node.y, glowRadius
+                    );
+                    gradient.addColorStop(0, `${node.color}40`);
+                    gradient.addColorStop(1, `${node.color}00`);
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, glowRadius, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
+                // Node fill
                 this.ctx.fillStyle = node.color;
-                this.ctx.globalAlpha = 0.2 + node.activation * 0.8;
+                this.ctx.globalAlpha = 0.2 + activation * 0.8;
                 this.ctx.beginPath();
-                this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                this.ctx.arc(node.x, node.y, node.radius || 10, 0, Math.PI * 2);
                 this.ctx.fill();
                 
+                // Node border
                 this.ctx.globalAlpha = 1;
                 this.ctx.strokeStyle = node.color;
-                this.ctx.lineWidth = 2;
+                this.ctx.lineWidth = layerIdx === this.currentLayer ? 3 : 2;
                 this.ctx.beginPath();
-                this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                this.ctx.arc(node.x, node.y, node.radius || 10, 0, Math.PI * 2);
                 this.ctx.stroke();
             });
         });
+        
+        // Draw status text
+        this.ctx.fillStyle = '#333';
+        this.ctx.font = 'bold 14px sans-serif';
+        this.ctx.textAlign = 'center';
+        const layerNames = ['Input Layer', 'Hidden Layer 1', 'Hidden Layer 2', 'Hidden Layer 3', 'Output Layer'];
+        if (this.currentLayer < layerNames.length) {
+            this.ctx.fillText(`Processing: ${layerNames[this.currentLayer]}`, this.canvas.width / 2, 25);
+        }
+    }
+    
+    easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 }
 
 function initDeepPerceptron() {
-    const canvas = document.getElementById('deep-perceptron-canvas');
+    const canvas = document.getElementById('deep-canvas');
     if (!canvas) return;
     
     if (!deepPerceptronViz) {
@@ -1810,23 +2049,23 @@ function initDeepPerceptron() {
     if (!deepPerceptronInitialized) {
         deepPerceptronInitialized = true;
         
-        document.getElementById('deep-perceptron-start').addEventListener('click', () => {
+        document.getElementById('deep-start').addEventListener('click', () => {
             state.deepPerceptron.running = !state.deepPerceptron.running;
-            document.getElementById('deep-perceptron-start').textContent = 
+            document.getElementById('deep-start').textContent = 
                 state.deepPerceptron.running ? 'Pause Training' : 'Start Training';
             if (state.deepPerceptron.running) animateDeepPerceptron();
         });
         
-        document.getElementById('deep-perceptron-reset').addEventListener('click', () => {
+        document.getElementById('deep-reset').addEventListener('click', () => {
             state.deepPerceptron.running = false;
             deepPerceptronViz.setupLayers();
             deepPerceptronViz.particles = [];
             deepPerceptronViz.draw();
-            document.getElementById('deep-perceptron-start').textContent = 'Start Training';
+            document.getElementById('deep-start').textContent = 'Start Training';
         });
         
-        document.getElementById('deep-perceptron-speed').addEventListener('input', (e) => {
-            state.deepPerceptron.speed = parseInt(e.target.value);
+        document.getElementById('deep-speed').addEventListener('input', (e) => {
+            state.deepPerceptron.speed = parseFloat(e.target.value);
         });
     }
     
@@ -1836,12 +2075,12 @@ function initDeepPerceptron() {
 function animateDeepPerceptron() {
     if (!state.deepPerceptron.running || state.currentDemo !== 'deep-perceptron') return;
     
-    deepPerceptronViz.update();
-    deepPerceptronViz.draw();
+    if (deepPerceptronViz) {
+        deepPerceptronViz.update();
+        deepPerceptronViz.draw();
+    }
     
-    setTimeout(() => {
-        requestAnimationFrame(animateDeepPerceptron);
-    }, 1000 / state.deepPerceptron.speed);
+    requestAnimationFrame(animateDeepPerceptron);
 }
 
 // ====== Normalizing Flow Visualization ======
