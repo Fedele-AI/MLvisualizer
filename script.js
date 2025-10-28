@@ -1413,12 +1413,125 @@ function initHopfield() {
 // ====== Transformer Visualization ======
 let transformerViz = null;
 let transformerInitialized = false;
+let toyLMBuilt = false;
+
+// Simple toy language model (unigram + bigram) for next-token prediction
+const toyLM = {
+    unigram: new Map(),
+    bigram: new Map(),
+    vocab: new Set(),
+    total: 0,
+    sos: '<s>',
+    eos: '</s>'
+};
+
+function tokenize(text) {
+    if (!text) return [];
+    const matches = text.toLowerCase().match(/[\w']+|[.,!?;:]/g);
+    return matches ? matches : [];
+}
+
+function buildToyLanguageModel() {
+    if (toyLMBuilt) return;
+    const corpus = [
+        'the cat sat on the mat',
+        'the dog sat on the rug',
+        'the cat chased the mouse',
+        'the dog chased the cat',
+        'a cat likes fish',
+        'a dog likes bones',
+        'the mat was soft',
+        'the rug was red',
+        'the cat slept',
+        'the dog barked',
+        'cats and dogs are animals',
+        'attention helps pick the next token',
+        'transformers predict the next token'
+    ];
+
+    for (const line of corpus) {
+        const tokens = [toyLM.sos, ...tokenize(line), toyLM.eos];
+        for (let i = 0; i < tokens.length; i++) {
+            const t = tokens[i];
+            toyLM.vocab.add(t);
+            toyLM.unigram.set(t, (toyLM.unigram.get(t) || 0) + 1);
+            toyLM.total++;
+            if (i > 0) {
+                const prev = tokens[i - 1];
+                if (!toyLM.bigram.has(prev)) toyLM.bigram.set(prev, new Map());
+                const row = toyLM.bigram.get(prev);
+                row.set(t, (row.get(t) || 0) + 1);
+            }
+        }
+    }
+    toyLMBuilt = true;
+}
+
+function softmax(logits) {
+    const maxLogit = Math.max(...logits);
+    const exps = logits.map(x => Math.exp(x - maxLogit));
+    const sum = exps.reduce((a, b) => a + b, 0);
+    return exps.map(e => e / sum);
+}
+
+function predictNextTokens(prompt, temperature = 1.0, topK = 5) {
+    buildToyLanguageModel();
+    const tokens = tokenize(prompt);
+    const last = tokens.length ? tokens[tokens.length - 1] : toyLM.sos;
+
+    let dist = new Map();
+    if (toyLM.bigram.has(last)) {
+        // Use bigram distribution if we have seen this context
+        dist = new Map(toyLM.bigram.get(last));
+    } else {
+        // Fallback to unigram distribution (excluding sos)
+        toyLM.unigram.forEach((c, t) => {
+            if (t !== toyLM.sos) dist.set(t, c);
+        });
+    }
+
+    // Convert counts to logits and apply temperature (log-count smoothing)
+    const entries = Array.from(dist.entries());
+    const logits = entries.map(([t, c]) => Math.log(1 + c) / Math.max(temperature, 0.05));
+    const probs = softmax(logits);
+    const scored = entries.map(([t], i) => ({ token: t, prob: probs[i] }))
+        .sort((a, b) => b.prob - a.prob)
+        .slice(0, Math.max(1, Math.min(10, topK)));
+    return scored;
+}
+
+function updateTransformerResults(preds) {
+    const list = document.getElementById('transformer-topk-list');
+    if (!list) return;
+    list.innerHTML = '';
+    preds.forEach(({ token, prob }, idx) => {
+        const li = document.createElement('li');
+        li.className = 'token-item';
+        const label = document.createElement('div');
+        label.className = 'token-label';
+        label.textContent = token;
+        const bar = document.createElement('div');
+        bar.className = 'token-bar';
+        const fill = document.createElement('div');
+        fill.className = 'token-bar-fill';
+        fill.style.width = `${(prob * 100).toFixed(1)}%`;
+        bar.appendChild(fill);
+        const pct = document.createElement('div');
+        pct.className = 'token-prob';
+        pct.textContent = `${(prob * 100).toFixed(1)}%`;
+        li.appendChild(label);
+        li.appendChild(bar);
+        li.appendChild(pct);
+        if (idx === 0) li.style.fontWeight = '700';
+        list.appendChild(li);
+    });
+}
 
 class TransformerVisualizer {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.tokens = ['The', 'cat', 'sat', 'on', 'mat'];
+        this.tokens = ['the', 'cat', 'sat', 'on', 'mat'];
         this.layers = [];
         this.attentionWeights = [];
         this.particles = [];
@@ -1426,6 +1539,8 @@ class TransformerVisualizer {
         this.phaseProgress = 0;
         this.animationTime = 0;
         this.attentionFocus = 0; // Which token is currently being attended to
+        this.predictions = [];
+        this.predictedTop = null;
         
         this.resize();
         this.setupLayers();
@@ -1440,10 +1555,10 @@ class TransformerVisualizer {
     }
     
     setupLayers() {
-        const layerCount = 5; // Embedding, Self-Attention, Context, Feed-Forward, Output
-        const tokenCount = this.tokens.length;
+        const layerCount = 5; // Prompt, Context, Scores, Softmax, Next Token
+        const tokenCount = this.tokens.length || 1;
         const layerColors = ['#4A90E2', '#f57f17', '#9B59B6', '#E74C3C', '#27AE60'];
-        const layerNames = ['Embed', 'Attention', 'Context', 'FFN', 'Output'];
+        const layerNames = ['Prompt', 'Context', 'Scores', 'Softmax', 'Next'];
         
         // Responsive node radius and padding
         const nodeRadius = Math.max(10, Math.min(15, this.canvas.width / 50));
@@ -1473,24 +1588,37 @@ class TransformerVisualizer {
             this.layers.push(nodes);
         }
         
-        // Initialize attention weights with realistic patterns
-        // "it" (index 4) should attend strongly to "cat" (index 1)
+        // Build simple context weights: last token attends to previous tokens with recency bias
         this.attentionWeights = [];
         for (let i = 0; i < tokenCount; i++) {
             this.attentionWeights[i] = [];
             for (let j = 0; j < tokenCount; j++) {
-                // Create meaningful attention patterns
-                if (i === 4 && j === 1) { // "mat" looks at "cat"
-                    this.attentionWeights[i][j] = 0.8;
-                } else if (i === j) {
-                    this.attentionWeights[i][j] = 0.5; // Self-attention
-                } else if (Math.abs(i - j) === 1) {
-                    this.attentionWeights[i][j] = 0.3; // Adjacent tokens
-                } else {
-                    this.attentionWeights[i][j] = 0.1 + Math.random() * 0.2;
-                }
+                const dist = Math.max(1, Math.abs(i - j));
+                const base = i === j ? 0.6 : 1 / (dist + 0.5);
+                this.attentionWeights[i][j] = base;
             }
         }
+        // Normalize each row to [0,1]
+        for (let i = 0; i < tokenCount; i++) {
+            const row = this.attentionWeights[i];
+            const max = Math.max(...row);
+            if (max > 0) {
+                for (let j = 0; j < tokenCount; j++) row[j] = row[j] / max;
+            }
+        }
+    }
+
+    setTokens(tokens) {
+        this.tokens = (tokens && tokens.length ? tokens : ['']).map(t => String(t));
+        this.attentionFocus = Math.max(0, this.tokens.length - 1);
+        this.setupLayers();
+        this.draw();
+    }
+
+    setPredictions(preds) {
+        this.predictions = preds || [];
+        this.predictedTop = this.predictions.length ? this.predictions[0].token : null;
+        this.draw();
     }
     
     update() {
@@ -1701,8 +1829,20 @@ class TransformerVisualizer {
         this.ctx.fillStyle = '#333';
         this.ctx.font = 'bold 14px sans-serif';
         this.ctx.textAlign = 'center';
-        const phaseNames = ['Embedding Input', 'Computing Self-Attention', 'Gathering Context', 'Feed-Forward Processing', 'Generating Output'];
+        const phaseNames = ['Prompt', 'Context (self‑attention)', 'Scores', 'Softmax', 'Next token'];
         this.ctx.fillText(phaseNames[this.phase], this.canvas.width / 2, 25);
+
+        // Show top-1 predicted token near the output column
+        if (this.predictedTop) {
+            const outputLayer = this.layers[this.layers.length - 1];
+            if (outputLayer && outputLayer.length) {
+                const anchor = outputLayer[Math.min(outputLayer.length - 1, this.attentionFocus)];
+                this.ctx.fillStyle = '#27AE60';
+                this.ctx.font = 'bold 14px sans-serif';
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`→ ${this.predictedTop}`, anchor.x + anchor.radius + 12, anchor.y + 4);
+            }
+        }
     }
     
     easeInOutCubic(t) {
@@ -1746,40 +1886,75 @@ function initTransformer() {
     const canvas = document.getElementById('transformer-canvas');
     if (!canvas) return;
     
+    // Initialize (static) visual for context, but focus on interactive next-token UI
     if (!transformerViz) {
         transformerViz = new TransformerVisualizer(canvas);
+        transformerViz.draw();
     } else {
         transformerViz.resize();
+        transformerViz.draw();
     }
-    
+
     if (!transformerInitialized) {
         transformerInitialized = true;
-        
-        document.getElementById('transformer-start').addEventListener('click', () => {
-            state.transformer.running = !state.transformer.running;
-            document.getElementById('transformer-start').textContent = 
-                state.transformer.running ? 'Pause Animation' : 'Start Attention';
-            if (state.transformer.running) animateTransformer();
+
+        // Wire up interactive next-token controls
+        const inputEl = document.getElementById('transformer-input');
+        const tempEl = document.getElementById('transformer-temp');
+        const tempDisp = document.getElementById('transformer-temp-display');
+        const topkEl = document.getElementById('transformer-topk');
+        const topkDisp = document.getElementById('transformer-topk-display');
+        const predictBtn = document.getElementById('transformer-predict');
+        const appendBtn = document.getElementById('transformer-append');
+        const clearBtn = document.getElementById('transformer-clear');
+
+        const doPredict = () => {
+            const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), parseInt(topkEl.value));
+            updateTransformerResults(preds);
+            // Update viz to reflect prompt and predicted top token
+            const displayTokens = (inputEl.value || '').trim().length ? inputEl.value.split(/\s+/) : [];
+            transformerViz.setTokens(displayTokens);
+            transformerViz.setPredictions(preds);
+        };
+
+        tempEl.addEventListener('input', () => {
+            tempDisp.textContent = parseFloat(tempEl.value).toFixed(1);
+        });
+        topkEl.addEventListener('input', () => {
+            topkDisp.textContent = parseInt(topkEl.value, 10);
+        });
+        predictBtn.addEventListener('click', doPredict);
+        inputEl.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                doPredict();
+            }
+        });
+        inputEl.addEventListener('input', () => {
+            // Live update of the visualization to mirror prompt edits
+            const displayTokens = (inputEl.value || '').trim().length ? inputEl.value.split(/\s+/) : [];
+            transformerViz.setTokens(displayTokens);
+        });
+        appendBtn.addEventListener('click', () => {
+            const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), 1);
+            if (preds.length > 0) {
+                const tok = preds[0].token;
+                if (tok === toyLM.eos) return;
+                inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + tok;
+                doPredict();
+            }
+        });
+        clearBtn.addEventListener('click', () => {
+            inputEl.value = '';
+            updateTransformerResults([]);
+            transformerViz.setTokens([]);
+            transformerViz.setPredictions([]);
         });
         
-        document.getElementById('transformer-reset').addEventListener('click', () => {
-            state.transformer.running = false;
-            transformerViz.phase = 0;
-            transformerViz.phaseProgress = 0;
-            transformerViz.attentionFocus = 0;
-            transformerViz.animationTime = 0;
-            transformerViz.setupLayers();
-            transformerViz.particles = [];
-            transformerViz.draw();
-            document.getElementById('transformer-start').textContent = 'Start Attention';
-        });
-        
-        document.getElementById('transformer-speed').addEventListener('input', (e) => {
-            state.transformer.speed = parseInt(e.target.value);
-        });
+        // Initial predictions on empty prompt (from <s>)
+        doPredict();
     }
     
-    transformerViz.draw();
 }
 
 function animateTransformer() {

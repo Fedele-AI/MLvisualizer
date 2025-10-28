@@ -10,11 +10,16 @@ body {
     min-height: 100vh;
     padding: 20px;
     color: #333;
-    overflow: hidden; /* Prevent scrolling on body for demo pages */
+    overflow: hidden; /* default for compact demos; overridden below for active demo view */
 }
 
 /* Allow scrolling on homepage */
 body:has(.homepage.active) {
+    overflow: auto;
+}
+
+/* Allow scrolling on demo pages when content exceeds viewport */
+body:has(.demo-view.active) {
     overflow: auto;
 }
 
@@ -187,6 +192,11 @@ body:has(.homepage.active) {
     max-height: none;
 }
 
+/* Allow container to grow for active demos as well (prevents clipping at bottom) */
+.container:has(.demo-view.active) {
+    max-height: none;
+}
+
 @media (max-width: 768px) {
     .container {
         border-radius: 10px;
@@ -353,8 +363,9 @@ body:has(.homepage.active) {
 
 .demo-view.active {
     display: block;
-    height: 100%;
-    overflow: hidden;
+    height: auto;
+    min-height: 100%;
+    overflow: auto; /* enable scrolling for long demo content */
     position: relative;
 }
 
@@ -442,8 +453,9 @@ header h1 {
 .visualization-section {
     display: none;
     padding: 80px 40px 40px 40px;
-    height: calc(100vh - 40px);
-    overflow: hidden;
+    height: auto;
+    min-height: calc(100vh - 40px);
+    overflow: visible;
 }
 
 .visualization-section.active {
@@ -542,6 +554,71 @@ header h1 {
     display: flex;
     flex-direction: column;
     gap: 15px;
+}
+
+/* Transformer next-token UI */
+.control-row {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.btn-row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.results {
+    margin-top: 18px;
+    background: #fff;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 12px;
+}
+
+.results-header {
+    font-weight: 700;
+    color: #667eea;
+    margin-bottom: 8px;
+}
+
+.token-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.token-item {
+    display: grid;
+    grid-template-columns: 120px 1fr 60px;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95em;
+}
+
+.token-label {
+    font-weight: 600;
+    color: #444;
+}
+
+.token-bar {
+    height: 10px;
+    background: #f1f1f9;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.token-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+}
+
+.token-prob {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #555;
 }
 
 .btn {

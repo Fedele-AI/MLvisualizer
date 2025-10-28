@@ -380,36 +380,51 @@
                 <div class="explanation-box">
                     <h3>How it works:</h3>
                     <ul>
-                        <li><strong>Input Embedding:</strong> Turns words into numbers the computer can understand</li>
-                        <li><strong>Self-Attention:</strong> Each word looks at all other words to understand context</li>
-                        <li><strong>Multi-Head:</strong> Multiple "attention teams" spot different types of relationships</li>
-                        <li><strong>Parallel Processing:</strong> Reads all words at once (super fast!)</li>
-                        <li><strong>Feed-Forward:</strong> Thinks about what it learned and refines understanding</li>
-                        <li><strong>Uses:</strong> ChatGPT, translation, text generation, question answering</li>
+                        <li><strong>Next-token prediction:</strong> Given some text (tokens), it predicts a probability for the <em>next</em> token</li>
+                        <li><strong>Pick a token:</strong> Choose the most likely token (argmax) or sample using temperature/top-k</li>
+                        <li><strong>Repeat:</strong> Append that token and predict the next one again — this is how generation works</li>
+                        <li><strong>Under the hood:</strong> Self‑attention builds a context-aware representation to make that one prediction better</li>
+                        <li><strong>That’s it:</strong> Transformers are trained to be excellent next‑token predictors</li>
                     </ul>
                 </div>
 
                 <div class="controls">
-                    <button id="transformer-start" class="btn btn-primary">Start Attention</button>
-                    <button id="transformer-reset" class="btn btn-secondary">Reset</button>
-                    <label>
-                        Speed: <input type="range" id="transformer-speed" min="1" max="10" value="3">
-                    </label>
+                    <label for="transformer-input">Your prompt</label>
+                    <input id="transformer-input" type="text" placeholder="Type a few words… e.g., 'the cat'">
+                    <div class="control-row">
+                        <label>
+                            Temperature: <input type="range" id="transformer-temp" min="0.2" max="2.0" step="0.1" value="1.0">
+                            <span id="transformer-temp-display">1.0</span>
+                        </label>
+                        <label>
+                            Top‑k: <input type="range" id="transformer-topk" min="1" max="10" step="1" value="5">
+                            <span id="transformer-topk-display">5</span>
+                        </label>
+                    </div>
+                    <div class="btn-row">
+                        <button id="transformer-predict" class="btn btn-primary">Predict next token</button>
+                        <button id="transformer-append" class="btn btn-secondary">Append top prediction</button>
+                        <button id="transformer-clear" class="btn btn-secondary">Clear</button>
+                    </div>
                 </div>
 
                 <p class="description">
-                    A Transformer is like a super-smart reader who doesn't just read words one-by-one. Instead, it looks at ALL the words in a sentence at once and figures out which words are important to each other! Like in "The cat sat on the mat because it was tired" - the Transformer knows "it" refers to "cat", not "mat". It's like having multiple pairs of eyes that can spot different types of connections (grammar, meaning, context) all at the same time. This is why ChatGPT and other AI can understand language so well!
+                    In practice, a Transformer takes the tokens you’ve typed and outputs a probability distribution over the next token. Pick one, append it, and repeat. Internally, self‑attention helps the model use relevant context to make that single step as accurate as possible. Chat, translation, and code generation are just this next‑token game played many times.
                 </p>
             </div>
 
             <div class="canvas-container">
                 <canvas id="transformer-canvas"></canvas>
                 <div class="layer-labels autoencoder-labels">
-                    <span class="label input-label">Embedding</span>
-                    <span class="label encoder-label">Self-Attention</span>
-                    <span class="label latent-label">Context</span>
-                    <span class="label decoder-label">Feed-Forward</span>
-                    <span class="label output-label">Output</span>
+                    <span class="label input-label">Prompt</span>
+                    <span class="label encoder-label">Context</span>
+                    <span class="label latent-label">Scores</span>
+                    <span class="label decoder-label">Softmax</span>
+                    <span class="label output-label">Next Token</span>
+                </div>
+                <div id="transformer-results" class="results">
+                    <div class="results-header">Top predictions</div>
+                    <ul id="transformer-topk-list" class="token-list"></ul>
                 </div>
             </div>
         </section>
