@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <!-- Homepage Section -->
+        <section id="homepage" class="homepage active">
+            <header class="hero">
+                <h1>🧠 Neural Network Visualizer</h1>
+                <p class="subtitle">Interactive demonstrations of AI and machine learning architectures</p>
+            </header>
+
+            <div class="demo-grid">
+                <div class="demo-card" data-demo="perceptron">
+                    <div class="demo-icon">⚡</div>
+                    <h3>Perceptron</h3>
+                    <p>The foundational building block of neural networks - a simple linear classifier</p>
+                    <div class="demo-tags">
+                        <span class="tag">Supervised</span>
+                        <span class="tag">Classification</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="rbm">
+                    <div class="demo-icon">🔄</div>
+                    <h3>Restricted Boltzmann Machine</h3>
+                    <p>A generative network with bidirectional energy flow between visible and hidden layers</p>
+                    <div class="demo-tags">
+                        <span class="tag">Unsupervised</span>
+                        <span class="tag">Generative</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="autoencoder">
+                    <div class="demo-icon">📦</div>
+                    <h3>Autoencoder</h3>
+                    <p>Compress and reconstruct data through a bottleneck latent representation</p>
+                    <div class="demo-tags">
+                        <span class="tag">Unsupervised</span>
+                        <span class="tag">Compression</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="ising">
+                    <div class="demo-icon">🧲</div>
+                    <h3>Ising Model</h3>
+                    <p>Statistical physics model showing spin interactions and phase transitions</p>
+                    <div class="demo-tags">
+                        <span class="tag">Physics</span>
+                        <span class="tag">Energy-based</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="hopfield">
+                    <div class="demo-icon">💾</div>
+                    <h3>Hopfield Network</h3>
+                    <p>Associative memory network that stores and retrieves patterns</p>
+                    <div class="demo-tags">
+                        <span class="tag">Recurrent</span>
+                        <span class="tag">Memory</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="transformer">
+                    <div class="demo-icon">🤖</div>
+                    <h3>Transformer</h3>
+                    <p>Modern architecture using attention mechanisms to process sequences</p>
+                    <div class="demo-tags">
+                        <span class="tag">Attention</span>
+                        <span class="tag">NLP</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="deep-perceptron">
+                    <div class="demo-icon">🧠</div>
+                    <h3>Deep Perceptron (MLP)</h3>
+                    <p>Multi-layer neural network with hidden layers for complex decision boundaries</p>
+                    <div class="demo-tags">
+                        <span class="tag">Supervised</span>
+                        <span class="tag">Deep Learning</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="normalizing-flow">
+                    <div class="demo-icon">🌊</div>
+                    <h3>Normalizing Flow</h3>
+                    <p>Invertible transformations that map simple to complex distributions</p>
+                    <div class="demo-tags">
+                        <span class="tag">Generative</span>
+                        <span class="tag">Probabilistic</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="vae">
+                    <div class="demo-icon">🎲</div>
+                    <h3>Variational Autoencoder</h3>
+                    <p>Probabilistic encoder-decoder that learns continuous latent distributions</p>
+                    <div class="demo-tags">
+                        <span class="tag">Generative</span>
+                        <span class="tag">Probabilistic</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="cnn-encoder-decoder">
+                    <div class="demo-icon">🖼️</div>
+                    <h3>CNN Encoder-Decoder</h3>
+                    <p>Bidirectional convolutional network for image processing tasks</p>
+                    <div class="demo-tags">
+                        <span class="tag">Computer Vision</span>
+                        <span class="tag">Spatial</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="mamba2">
+                    <div class="demo-icon">🐍</div>
+                    <h3>Mamba2</h3>
+                    <p>State-space model with selective gating for efficient sequence modeling</p>
+                    <div class="demo-tags">
+                        <span class="tag">SSM</span>
+                        <span class="tag">Efficient</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="cuda">
+                    <div class="demo-icon">⚡</div>
+                    <h3>CUDA Visualization</h3>
+                    <p>GPU parallel computing concepts: threads, blocks, and memory hierarchy</p>
+                    <div class="demo-tags">
+                        <span class="tag">GPU</span>
+                        <span class="tag">Parallel</span>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="homepage-footer">
+                <p>Interactive Neural Network Visualizer | Built for CEE 4803 at Georgia Tech</p>
+            </footer>
+        </section>
+
+        <!-- Demo View Container -->
+        <div id="demo-view" class="demo-view">
+            <button class="back-button" id="back-to-home">← Back to Home</button>
+
+            <!-- Perceptron Section -->
+            <section id="perceptron" class="visualization-section">
+                <div class="info-panel">
+                    <h2>Perceptron</h2>
+                    <p class="description">
+                        The perceptron is the simplest neural network unit, acting as a binary linear classifier.
+                        It learns to separate two classes by adjusting weights.
+                    </p>
+                    
+                    <div class="explanation-box">
+                        <h3>How it works:</h3>
+                        <ul>
+                            <li><strong>Input Layer:</strong> Receives feature values (blue nodes)</li>
+                            <li><strong>Weights:</strong> Each input has an adjustable weight</li>
+                            <li><strong>Summation:</strong> Weighted sum of inputs plus bias</li>
+                            <li><strong>Activation:</strong> Step function produces binary output (red/green)</li>
+                            <li><strong>Learning:</strong> Adjusts weights based on classification errors</li>
+                        </ul>
+                    </div>
+
+                    <div class="controls">
+                        <button id="perceptron-start" class="btn btn-primary">Start Training</button>
+                        <button id="perceptron-reset" class="btn btn-secondary">Reset</button>
+                        <label>
+                            Speed: <input type="range" id="perceptron-speed" min="1" max="10" value="3">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="perceptron-canvas"></canvas>
+                    <div class="layer-labels">
+                        <span class="label input-label">Input Features</span>
+                        <span class="label output-label">Output Decision</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RBM Section -->
+        <section id="rbm" class="visualization-section">
+            <div class="info-panel">
+                <h2>Restricted Boltzmann Machine (RBM)</h2>
+                <p class="description">
+                    An RBM is a generative neural network with two layers: visible and hidden. 
+                    It learns to represent data by finding patterns in the input.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Visible Layer:</strong> Receives input data (blue nodes)</li>
+                        <li><strong>Hidden Layer:</strong> Learns hidden features (purple nodes)</li>
+                        <li><strong>Bidirectional:</strong> Energy flows both ways during training</li>
+                        <li><strong>No connections:</strong> Within the same layer (restricted)</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="rbm-start" class="btn btn-primary">Start Training</button>
+                    <button id="rbm-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="rbm-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="rbm-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label visible-label">Visible Layer</span>
+                    <span class="label hidden-label">Hidden Layer</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Autoencoder Section -->
+        <section id="autoencoder" class="visualization-section">
+            <div class="info-panel">
+                <h2>Autoencoder</h2>
+                <p class="description">
+                    An autoencoder compresses data into a lower-dimensional representation, 
+                    then reconstructs it back to the original form.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Input Layer:</strong> Original data (green nodes)</li>
+                        <li><strong>Encoder:</strong> Compresses to latent space (yellow nodes)</li>
+                        <li><strong>Latent Space:</strong> Compressed representation (orange nodes)</li>
+                        <li><strong>Decoder:</strong> Reconstructs from latent space (yellow nodes)</li>
+                        <li><strong>Output Layer:</strong> Reconstructed data (green nodes)</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="ae-start" class="btn btn-primary">Start Encoding</button>
+                    <button id="ae-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="ae-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="ae-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">Encoder</span>
+                    <span class="label latent-label">Latent</span>
+                    <span class="label decoder-label">Decoder</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ising Model Section -->
+        <section id="ising" class="visualization-section">
+            <div class="info-panel">
+                <h2>Ising Model</h2>
+                <p class="description">
+                    A statistical physics model describing magnetic spin interactions on a lattice.
+                    Demonstrates phase transitions and emergent collective behavior.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Spins:</strong> Each cell has +1 (up/white) or -1 (down/black)</li>
+                        <li><strong>Neighbors:</strong> Spins interact with adjacent cells</li>
+                        <li><strong>Energy:</strong> Lower when aligned neighbors</li>
+                        <li><strong>Temperature:</strong> Controls randomness and phase transitions</li>
+                        <li><strong>Dynamics:</strong> Monte Carlo updates minimize energy</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="ising-start" class="btn btn-primary">Start Simulation</button>
+                    <button id="ising-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Temperature: <input type="range" id="ising-temp" min="0.1" max="5" step="0.1" value="2.27">
+                    </label>
+                    <label>
+                        Speed: <input type="range" id="ising-speed" min="1" max="10" value="5">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="ising-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label visible-label">Temperature: <span id="ising-temp-display">2.27</span></span>
+                    <span class="label hidden-label">Energy: <span id="ising-energy-display">0</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hopfield Network Section -->
+        <section id="hopfield" class="visualization-section">
+            <div class="info-panel">
+                <h2>Hopfield Network</h2>
+                <p class="description">
+                    A recurrent neural network that serves as content-addressable memory,
+                    storing and retrieving patterns through energy minimization.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Fully Connected:</strong> Every neuron connects to every other</li>
+                        <li><strong>Symmetric Weights:</strong> Connection strength is bidirectional</li>
+                        <li><strong>Pattern Storage:</strong> Memories stored in weight matrix</li>
+                        <li><strong>Recall:</strong> Noisy input converges to stored pattern</li>
+                        <li><strong>Energy Landscape:</strong> Patterns are stable attractors</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="hopfield-store" class="btn btn-primary">Store Patterns</button>
+                    <button id="hopfield-recall" class="btn btn-primary">Test Recall</button>
+                    <button id="hopfield-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Noise Level: <input type="range" id="hopfield-noise" min="0" max="50" value="20">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="hopfield-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label input-label">Current State</span>
+                    <span class="label latent-label">Stored Patterns: <span id="hopfield-patterns">0</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transformer Section -->
+        <section id="transformer" class="visualization-section">
+            <div class="info-panel">
+                <h2>Transformer</h2>
+                <p class="description">
+                    The revolutionary architecture behind modern language models,
+                    using self-attention to process sequences in parallel.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Input Embedding:</strong> Words → vectors with position info</li>
+                        <li><strong>Self-Attention:</strong> Each token attends to all others</li>
+                        <li><strong>Query, Key, Value:</strong> Mechanism to compute relevance</li>
+                        <li><strong>Multi-Head:</strong> Parallel attention in different subspaces</li>
+                        <li><strong>Feed-Forward:</strong> Position-wise transformations</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="transformer-start" class="btn btn-primary">Process Sequence</button>
+                    <button id="transformer-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="transformer-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="transformer-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">Attention</span>
+                    <span class="label latent-label">Context</span>
+                    <span class="label decoder-label">Feed-Forward</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        </section>
+
+        <!-- Deep Perceptron Section -->
+        <section id="deep-perceptron" class="visualization-section">
+            <div class="info-panel">
+                <h2>Deep Perceptron (Multi-Layer Perceptron)</h2>
+                <p class="description">
+                    A feed-forward neural network with one or more hidden layers,
+                    capable of learning complex non-linear decision boundaries.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Input Layer:</strong> Receives feature vectors</li>
+                        <li><strong>Hidden Layers:</strong> Multiple layers learn hierarchical features</li>
+                        <li><strong>Activation Functions:</strong> Non-linear transformations (ReLU, sigmoid)</li>
+                        <li><strong>Output Layer:</strong> Classification or regression output</li>
+                        <li><strong>Backpropagation:</strong> Gradient-based weight optimization</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="deep-perceptron-start" class="btn btn-primary">Start Training</button>
+                    <button id="deep-perceptron-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="deep-perceptron-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="deep-perceptron-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">Hidden 1</span>
+                    <span class="label latent-label">Hidden 2</span>
+                    <span class="label decoder-label">Hidden 3</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Normalizing Flow Section -->
+        <section id="normalizing-flow" class="visualization-section">
+            <div class="info-panel">
+                <h2>Normalizing Flow</h2>
+                <p class="description">
+                    A sequence of invertible transformations that map a simple distribution
+                    to a complex one, enabling exact likelihood computation.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Base Distribution:</strong> Simple Gaussian starting point</li>
+                        <li><strong>Invertible Transforms:</strong> Bijective mappings (coupling layers)</li>
+                        <li><strong>Jacobian:</strong> Tracks volume changes for likelihood</li>
+                        <li><strong>Forward Pass:</strong> Generate samples from complex distribution</li>
+                        <li><strong>Inverse Pass:</strong> Compute exact log-likelihood</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="nf-start" class="btn btn-primary">Start Flow</button>
+                    <button id="nf-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="nf-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="nf-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Base Z</span>
+                    <span class="label encoder-label">Flow 1</span>
+                    <span class="label latent-label">Flow 2</span>
+                    <span class="label decoder-label">Flow 3</span>
+                    <span class="label output-label">Data X</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Variational Autoencoder Section -->
+        <section id="vae" class="visualization-section">
+            <div class="info-panel">
+                <h2>Variational Autoencoder (VAE)</h2>
+                <p class="description">
+                    A probabilistic autoencoder that learns to encode data into a distribution
+                    rather than a fixed point, enabling generation of new samples.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Encoder:</strong> Maps input to distribution parameters (μ, σ)</li>
+                        <li><strong>Reparameterization:</strong> Sample z = μ + σ * ε for gradients</li>
+                        <li><strong>Latent Space:</strong> Continuous probabilistic representation</li>
+                        <li><strong>Decoder:</strong> Generates output from sampled latent code</li>
+                        <li><strong>Loss:</strong> Reconstruction + KL divergence regularization</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="vae-start" class="btn btn-primary">Start Encoding</button>
+                    <button id="vae-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="vae-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="vae-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">μ, σ</span>
+                    <span class="label latent-label">z ~ N(μ,σ)</span>
+                    <span class="label decoder-label">Decoder</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CNN Encoder-Decoder Section -->
+        <section id="cnn-encoder-decoder" class="visualization-section">
+            <div class="info-panel">
+                <h2>Bidirectional CNN Encoder-Decoder</h2>
+                <p class="description">
+                    A convolutional architecture that encodes spatial information and
+                    decodes it for tasks like segmentation and image-to-image translation.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Conv Encoder:</strong> Downsamples with pooling to capture features</li>
+                        <li><strong>Skip Connections:</strong> Preserve spatial information across scales</li>
+                        <li><strong>Bottleneck:</strong> Compressed feature representation</li>
+                        <li><strong>Conv Decoder:</strong> Upsamples to reconstruct spatial dimensions</li>
+                        <li><strong>Applications:</strong> Segmentation, super-resolution, style transfer</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="cnn-start" class="btn btn-primary">Process Image</button>
+                    <button id="cnn-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="cnn-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="cnn-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">Conv↓</span>
+                    <span class="label latent-label">Features</span>
+                    <span class="label decoder-label">Conv↑</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mamba2 Section -->
+        <section id="mamba2" class="visualization-section">
+            <div class="info-panel">
+                <h2>Mamba2 Architecture</h2>
+                <p class="description">
+                    A state-space model with selective gating mechanisms that efficiently
+                    processes long sequences with linear complexity, rivaling Transformers.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>State Space:</strong> Continuous-time dynamics for sequences</li>
+                        <li><strong>Selective Scan:</strong> Input-dependent state transitions</li>
+                        <li><strong>Gating:</strong> Control what information flows through time</li>
+                        <li><strong>Linear Complexity:</strong> O(n) vs O(n²) for attention</li>
+                        <li><strong>Long Context:</strong> Efficiently handles very long sequences</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="mamba2-start" class="btn btn-primary">Process Sequence</button>
+                    <button id="mamba2-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="mamba2-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="mamba2-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">SSM</span>
+                    <span class="label latent-label">State</span>
+                    <span class="label decoder-label">Gate</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CUDA Visualization Section -->
+        <section id="cuda" class="visualization-section">
+            <div class="info-panel">
+                <h2>CUDA Programming Model</h2>
+                <p class="description">
+                    GPU parallel computing with NVIDIA CUDA: visualize thread hierarchies,
+                    memory types, and massively parallel execution.
+                </p>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Grid:</strong> Collection of thread blocks</li>
+                        <li><strong>Blocks:</strong> Groups of threads executed together</li>
+                        <li><strong>Threads:</strong> Individual execution units (thousands in parallel)</li>
+                        <li><strong>Shared Memory:</strong> Fast on-chip memory per block</li>
+                        <li><strong>Global Memory:</strong> Large but slower device memory</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="cuda-start" class="btn btn-primary">Launch Kernel</button>
+                    <button id="cuda-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="cuda-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="cuda-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Grid</span>
+                    <span class="label encoder-label">Blocks</span>
+                    <span class="label latent-label">Threads</span>
+                    <span class="label decoder-label">Shared Mem</span>
+                    <span class="label output-label">Global Mem</span>
+                </div>
+            </div>
+        </section>
+
+        </section>
+
+        <footer>
+            <p>Interactive AI Visualizer | Built for CEE 4803 at Georgia Tech</p>
+        </footer>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
