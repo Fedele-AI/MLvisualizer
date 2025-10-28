@@ -2276,8 +2276,7 @@ class NormalizingFlowVisualizer {
         this.ctx = canvas.getContext('2d');
         this.layers = [];
         this.particles = [];
-        this.currentLayer = 0;
-        this.dataFlowTimer = 0;
+        this.spawnTimer = 0;
         this.resize();
         this.setupLayers();
     }
@@ -2294,7 +2293,6 @@ class NormalizingFlowVisualizer {
         const layerSizes = [8, 6, 6, 6, 8];
         this.layers = [];
         
-        // Responsive node radius
         const nodeRadius = Math.max(8, Math.min(12, w / 60));
         const spacing = w / (layerSizes.length + 1);
         
@@ -2309,11 +2307,11 @@ class NormalizingFlowVisualizer {
                     y: nodeSpacing * (i + 1),
                     radius: nodeRadius,
                     activation: 0,
-                    color: layerIdx === 0 ? '#667EEA' :      // Base Z - Blue
-                           layerIdx === 1 ? '#9B59B6' :      // Flow 1 - Purple
-                           layerIdx === 2 ? '#E056FD' :      // Flow 2 - Pink/Magenta
-                           layerIdx === 3 ? '#3498DB' :      // Flow 3 - Cyan/Blue
-                           '#F77F17'                         // Data X - Orange
+                    layerIndex: layerIdx,
+                    color: layerIdx === 0 ? '#667EEA' : 
+                           layerIdx === 1 ? '#9B59B6' : 
+                           layerIdx === 2 ? '#E056FD' : 
+                           layerIdx === 3 ? '#3498DB' : '#F77F17'
                 });
             }
             this.layers.push(layer);
@@ -2321,118 +2319,102 @@ class NormalizingFlowVisualizer {
     }
     
     update() {
-        // Smooth decay for all nodes
+        // Decay activations
         this.layers.forEach(layer => {
-            layer.forEach(node => {
-                node.activation *= 0.92;
-            });
+            layer.forEach(node => node.activation *= 0.92);
         });
 
-        // Animation speed scaling
-        const minSpeed = 2; // slowest
-        const maxSpeed = 5;   // fastest
         const userSpeed = state.normalizingFlow?.speed || 1;
-        // Map userSpeed (1-10 slider?) to [minSpeed, maxSpeed]
-        const speedScale = minSpeed + (maxSpeed - minSpeed) * ((userSpeed - 1) / 9);
-
-        // The higher the speed, the more often we trigger a flow step
-        // At slowest, interval is longer; at fastest, it's shorter
-        const baseInterval = 30; // higher = slower
-        const interval = Math.round(baseInterval / speedScale);
-        this.dataFlowTimer++;
-        if (this.dataFlowTimer === 1 || this.dataFlowTimer % interval === 0) {
-            if (this.currentLayer < this.layers.length - 1) {
-                const sourceLayer = this.layers[this.currentLayer];
-                const targetLayer = this.layers[this.currentLayer + 1];
-
-                sourceLayer.forEach(sourceNode => {
-                    if (this.currentLayer === 0 || sourceNode.activation > 0.3) {
-                        sourceNode.activation = 0.9;
-                        const targetNode = targetLayer[Math.floor(Math.random() * targetLayer.length)];
-
-                        this.particles.push({
-                            x: sourceNode.x,
-                            y: sourceNode.y,
-                            targetX: targetNode.x,
-                            targetY: targetNode.y,
-                            progress: 0,
-                            life: 1,
-                            targetNode: targetNode
-                        });
-                    }
-                });
-
-                this.currentLayer++;
-                if (this.currentLayer >= this.layers.length - 1) {
-                    this.currentLayer = 0;
-                }
-            }
-        }
-
-        // Update particles with smooth easing, scale by speed
-        const progressStep = 0.02 + 0.10 * speedScale; // 0.02 (slow) to 0.32 (fast)
-        const lifeStep = 0.005 + 0.03 * speedScale;    // 0.005 (slow) to 0.035 (fast)
-        this.particles = this.particles.filter(p => {
+        const progressStep = 0.008 * userSpeed;
+        
+        // Update particles and spawn recursively
+        this.particles.forEach(p => {
             p.progress += progressStep;
-            p.life -= lifeStep;
-
-            // Activate target when particle arrives
-            if (p.progress >= 0.9 && p.targetNode) {
-                p.targetNode.activation = 0.9;
-                p.targetNode = null;
+            
+            // When particle arrives, activate target and spawn next
+            if (p.progress >= 0.95 && !p.spawned) {
+                p.targetNode.activation = 1;
+                this.spawnNext(p.targetNode);
+                p.spawned = true;
             }
-
-            return p.life > 0 && p.progress < 1;
+        });
+        
+        // Remove finished particles
+        this.particles = this.particles.filter(p => p.progress < 1.2);
+        
+        // Periodically spawn from first layer
+        this.spawnTimer++;
+        if (this.spawnTimer % Math.max(40, 100 / userSpeed) === 0) {
+            const node = this.layers[0][Math.floor(Math.random() * this.layers[0].length)];
+            node.activation = 1;
+            this.spawnNext(node);
+        }
+    }
+    
+    spawnNext(node) {
+        if (node.layerIndex >= this.layers.length - 1) return;
+        
+        const nextLayer = this.layers[node.layerIndex + 1];
+        const target = nextLayer[Math.floor(Math.random() * nextLayer.length)];
+        
+        this.particles.push({
+            x: node.x,
+            y: node.y,
+            targetX: target.x,
+            targetY: target.y,
+            targetNode: target,
+            progress: 0,
+            spawned: false
         });
     }
     
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Smooth easing function
-        const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+        const ease = t => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
         
-        // Draw connections with subtle lines
+        // Draw connections
         for (let i = 0; i < this.layers.length - 1; i++) {
-            this.layers[i].forEach(node1 => {
-                this.layers[i + 1].forEach(node2 => {
+            this.layers[i].forEach(n1 => {
+                this.layers[i + 1].forEach(n2 => {
                     this.ctx.strokeStyle = 'rgba(200, 200, 200, 0.1)';
                     this.ctx.lineWidth = 1;
                     this.ctx.beginPath();
-                    this.ctx.moveTo(node1.x, node1.y);
-                    this.ctx.lineTo(node2.x, node2.y);
+                    this.ctx.moveTo(n1.x, n1.y);
+                    this.ctx.lineTo(n2.x, n2.y);
                     this.ctx.stroke();
                 });
             });
         }
         
-        // Draw particles with smooth easing
+        // Draw particles
         this.particles.forEach(p => {
-            const eased = easeInOutCubic(p.progress);
+            const t = Math.min(p.progress, 1);
+            const eased = ease(t);
             const x = p.x + (p.targetX - p.x) * eased;
             const y = p.y + (p.targetY - p.y) * eased;
+            const alpha = 1 - p.progress / 1.2;
             
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
-            gradient.addColorStop(0, `rgba(155, 89, 182, ${p.life})`);
+            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 7);
+            gradient.addColorStop(0, `rgba(155, 89, 182, ${alpha})`);
             gradient.addColorStop(1, `rgba(155, 89, 182, 0)`);
             
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+            this.ctx.arc(x, y, 7, 0, Math.PI * 2);
             this.ctx.fill();
         });
         
-        // Draw nodes with glow effect
+        // Draw nodes
         this.layers.forEach(layer => {
             layer.forEach(node => {
-                // Inner glow
                 if (node.activation > 0.3) {
-                    const glowGradient = this.ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.radius * 1.5);
-                    glowGradient.addColorStop(0, `${node.color}80`);
-                    glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-                    this.ctx.fillStyle = glowGradient;
+                    const glow = this.ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.radius * 2);
+                    glow.addColorStop(0, `${node.color}AA`);
+                    glow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    this.ctx.fillStyle = glow;
                     this.ctx.beginPath();
-                    this.ctx.arc(node.x, node.y, node.radius * 1.5, 0, Math.PI * 2);
+                    this.ctx.arc(node.x, node.y, node.radius * 2, 0, Math.PI * 2);
                     this.ctx.fill();
                 }
                 

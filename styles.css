@@ -703,16 +703,16 @@ input[type="range"]::-moz-range-thumb {
 canvas {
     display: block;
     width: 100%;
-    height: 600px;
+    height: 300px;
     border-radius: 8px;
     flex: 1;
-    min-height: 400px;
+    min-height: 200px;
 }
 
 @media (max-width: 1024px) {
     canvas {
-        height: 500px;
-        min-height: 400px;
+        height: 250px;
+        min-height: 200px;
     }
 }
 
