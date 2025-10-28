@@ -147,9 +147,9 @@
                 <div class="demo-card" data-demo="mamba2">
                     <div class="demo-icon">🐍</div>
                     <h3>Mamba2</h3>
-                    <p>State-space model with selective gating for efficient sequence modeling</p>
+                    <p>State-of-the-art architecture replacing Transformers with linear-time complexity for ultra-long sequences</p>
                     <div class="demo-tags">
-                        <span class="tag">SSM</span>
+                        <span class="tag">State-of-the-art</span>
                         <span class="tag">Efficient</span>
                     </div>
                 </div>
@@ -590,12 +590,13 @@
                 <div class="explanation-box">
                     <h3>How it works:</h3>
                     <ul>
-                        <li><strong>State Space:</strong> A compact memory that stores important information</li>
-                        <li><strong>Selective Scan:</strong> Decides what to remember and what to forget as it reads</li>
-                        <li><strong>Linear Complexity:</strong> Stays fast even with really long sequences (unlike Transformers)</li>
-                        <li><strong>Hardware-Friendly:</strong> Designed to run efficiently on GPUs</li>
-                        <li><strong>Long Context:</strong> Can handle much longer texts than traditional methods</li>
-                        <li><strong>Uses:</strong> Long document understanding, efficient language modeling, time-series prediction</li>
+                        <li><strong>Replacing Transformers:</strong> Mamba2 is a breakthrough architecture that solves the main limitation of Transformers - their quadratic complexity with sequence length</li>
+                        <li><strong>Linear Complexity:</strong> While Transformers slow down dramatically with long sequences (computing attention between all token pairs), Mamba2 maintains constant speed regardless of length</li>
+                        <li><strong>Selective State Spaces:</strong> Uses a compact memory that intelligently decides what information to retain and what to forget, unlike Transformers that must attend to everything</li>
+                        <li><strong>Hardware Optimized:</strong> Designed from the ground up for modern GPU architectures, achieving 5-10x faster inference than Transformers</li>
+                        <li><strong>State-of-the-Art Performance:</strong> Matches or exceeds Transformer quality while handling 10x longer contexts (millions of tokens vs. hundreds of thousands)</li>
+                        <li><strong>The Future:</strong> Being rapidly adopted for long-document understanding, genomics, time-series forecasting, and next-generation language models</li>
+                        <li><strong>Why It Matters:</strong> Enables AI to process entire books, codebases, or conversations in a single pass - something Transformers struggle with</li>
                     </ul>
                 </div>
 
@@ -608,7 +609,7 @@
                 </div>
 
                 <p class="description">
-                    Think of Mamba2 like a really smart note-taker who reads a long story. Instead of trying to remember every single word and how it connects to every other word (which gets really hard with long stories!), Mamba2 has a special memory system that acts like a running summary. As new information comes in, it decides "Is this important? Should I remember it or forget it?" This makes it super fast at understanding long texts - like reading a whole book and still remembering the important parts from the beginning!
+                    Think of Transformers as a student who needs to compare every word in a book with every other word to understand it - this gets impossibly slow with long books! Mamba2 is like a speed-reader with a smart notebook: as it reads, it instantly decides "This is important, write it down" or "This is background info, skip it." The notebook stays small and organized, so even with massive texts, Mamba2 reads at lightning speed. This breakthrough is why Mamba2 is rapidly replacing Transformers in applications that need to understand really long sequences - from analyzing entire research papers to processing hours of conversation history.
                 </p>
             </div>
 

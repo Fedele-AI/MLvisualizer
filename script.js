@@ -2862,9 +2862,9 @@ class Mamba2Visualizer {
             });
         });
         
-        // Linear layer-by-layer flow
+        // Linear layer-by-layer flow - slowed down significantly
         this.dataFlowTimer++;
-        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 15 === 0) {
+        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 30 === 0) {
             if (this.currentLayer < this.layers.length - 1) {
                 const sourceLayer = this.layers[this.currentLayer];
                 const targetLayer = this.layers[this.currentLayer + 1];
@@ -2893,10 +2893,10 @@ class Mamba2Visualizer {
             }
         }
         
-        // Update particles with smooth easing
+        // Update particles with smooth easing - slowed down
         this.particles = this.particles.filter(p => {
-            p.progress += 0.08;
-            p.life -= 0.02;
+            p.progress += 0.04;  // Reduced from 0.08
+            p.life -= 0.01;      // Reduced from 0.02
             
             // Activate target when particle arrives
             if (p.progress >= 0.9 && p.targetNode) {
@@ -3016,7 +3016,11 @@ function animateMamba2() {
     
     mamba2Viz.update();
     mamba2Viz.draw();
-    requestAnimationFrame(animateMamba2);
+    
+    // Add delay based on speed setting for better control
+    setTimeout(() => {
+        requestAnimationFrame(animateMamba2);
+    }, 1000 / (state.mamba2.speed * 6)); // Significantly slower than before
 }
 
 // ====== CUDA Visualization ======

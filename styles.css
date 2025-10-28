@@ -820,28 +820,33 @@ canvas {
 
 /* Mamba2 specific labels */
 .mamba2-input-label {
-    background: #e3d9f5;
-    color: #5e3ba8;
+    background: rgba(108, 92, 231, 0.15);
+    color: #6C5CE7;
+    border: 2px solid #6C5CE7;
 }
 
 .mamba2-ssm-label {
-    background: #fff4e6;
-    color: #e67e22;
+    background: rgba(253, 203, 110, 0.15);
+    color: #FDCB6E;
+    border: 2px solid #FDCB6E;
 }
 
 .mamba2-state-label {
-    background: #ffe6f0;
-    color: #c23871;
+    background: rgba(253, 203, 110, 0.15);
+    color: #FDCB6E;
+    border: 2px solid #FDCB6E;
 }
 
 .mamba2-gate-label {
-    background: #fff4e6;
-    color: #e67e22;
+    background: rgba(253, 121, 168, 0.15);
+    color: #FD79A8;
+    border: 2px solid #FD79A8;
 }
 
 .mamba2-output-label {
-    background: #d5f5e8;
-    color: #00a874;
+    background: rgba(0, 184, 148, 0.15);
+    color: #00B894;
+    border: 2px solid #00B894;
 }
 
 /* CUDA specific labels */
