@@ -3027,66 +3027,122 @@ class CUDAVisualizer {
     constructor(canvas) {
         this.canvas = canvas;
         this.ctx = canvas.getContext('2d');
-        this.grid = [];
+        this.animationTime = 0;
+        this.cycleDuration = 200; // frames per complete cycle (shorter for smoother flow)
         this.blocks = [];
-        this.threads = [];
-        this.activeThreads = [];
+        this.globalMemory = [];
+        this.currentPhase = 'idle'; // idle, load, compute, store
         this.resize();
-        this.setupGrid();
+        this.setupArchitecture();
     }
     
     resize() {
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
-        this.setupGrid();
+        this.setupArchitecture();
     }
     
-    setupGrid() {
+    setupArchitecture() {
         const w = this.canvas.width;
         const h = this.canvas.height;
         
-        // Grid structure
-        this.grid = {
-            x: w * 0.1,
-            y: h * 0.1,
-            width: w * 0.8,
-            height: h * 0.8
+        // Memory regions on the right side
+        this.globalMemory = {
+            x: w * 0.75,
+            y: h * 0.15,
+            width: w * 0.2,
+            height: h * 0.7,
+            cells: [],
+            label: 'Global Memory'
         };
         
-        // Blocks (4x2 grid of blocks)
+        // Create memory cells
+        const cellCount = 16;
+        const cellHeight = this.globalMemory.height / cellCount;
+        for (let i = 0; i < cellCount; i++) {
+            this.globalMemory.cells.push({
+                x: this.globalMemory.x,
+                y: this.globalMemory.y + i * cellHeight,
+                width: this.globalMemory.width,
+                height: cellHeight - 2,
+                data: Math.random() * 100,
+                accessed: 0,
+                index: i
+            });
+        }
+        
+        // SM (Streaming Multiprocessor) blocks on the left
         this.blocks = [];
-        const blockCols = 4;
+        const blockCols = 3;
         const blockRows = 2;
-        const blockWidth = this.grid.width / blockCols;
-        const blockHeight = this.grid.height / blockRows;
+        const smWidth = (w * 0.65) / blockCols;
+        const smHeight = (h * 0.7) / blockRows;
         
         for (let row = 0; row < blockRows; row++) {
             for (let col = 0; col < blockCols; col++) {
                 const block = {
-                    x: this.grid.x + col * blockWidth,
-                    y: this.grid.y + row * blockHeight,
-                    width: blockWidth - 10,
-                    height: blockHeight - 10,
-                    threads: [],
-                    active: 0
+                    x: w * 0.05 + col * smWidth,
+                    y: h * 0.15 + row * smHeight,
+                    width: smWidth - 15,
+                    height: smHeight - 15,
+                    id: row * blockCols + col,
+                    phase: 'idle',
+                    phaseProgress: 0,
+                    warps: [],
+                    sharedMemory: [],
+                    registers: [],
+                    activeWarp: 0,
+                    memoryAccesses: []
                 };
                 
-                // Threads per block (4x4 grid)
-                const threadCols = 4;
+                // Create warps (groups of 32 threads, visualized as 8x4)
+                const warpCount = 2;
+                const threadsPerWarp = 32;
+                const threadCols = 8;
                 const threadRows = 4;
-                const threadWidth = block.width / threadCols;
-                const threadHeight = block.height / threadRows;
+                const warpAreaHeight = (block.height - 30) / warpCount;
                 
-                for (let tRow = 0; tRow < threadRows; tRow++) {
-                    for (let tCol = 0; tCol < threadCols; tCol++) {
-                        block.threads.push({
-                            x: block.x + tCol * threadWidth + threadWidth / 2,
-                            y: block.y + tRow * threadHeight + threadHeight / 2,
-                            radius: 5,
-                            active: 0
-                        });
+                for (let w = 0; w < warpCount; w++) {
+                    const warp = {
+                        id: w,
+                        threads: [],
+                        active: false,
+                        syncPoint: 0
+                    };
+                    
+                    const threadSize = Math.min(
+                        (block.width - 20) / threadCols,
+                        warpAreaHeight / threadRows
+                    ) - 2;
+                    
+                    const startX = block.x + 10;
+                    const startY = block.y + 25 + w * warpAreaHeight;
+                    
+                    for (let tRow = 0; tRow < threadRows; tRow++) {
+                        for (let tCol = 0; tCol < threadCols; tCol++) {
+                            const threadId = tRow * threadCols + tCol;
+                            warp.threads.push({
+                                id: threadId,
+                                x: startX + tCol * (threadSize + 2),
+                                y: startY + tRow * (threadSize + 2),
+                                size: threadSize,
+                                state: 'idle', // idle, loading, computing, storing
+                                value: 0,
+                                targetMemory: threadId % 16,
+                                computeProgress: 0
+                            });
+                        }
                     }
+                    
+                    block.warps.push(warp);
                 }
+                
+                // Shared memory for this SM
+                block.sharedMemory = Array(8).fill(0).map((_, i) => ({
+                    value: 0,
+                    accessed: 0,
+                    index: i
+                }));
                 
                 this.blocks.push(block);
             }
@@ -3094,76 +3150,315 @@ class CUDAVisualizer {
     }
     
     update() {
-        // Randomly activate blocks and threads
-        this.blocks.forEach(block => {
-            block.active = Math.random() < 0.3 ? 1 : block.active * 0.9;
-            block.threads.forEach(thread => {
-                if (Math.random() < 0.1) {
-                    thread.active = 1;
-                } else {
-                    thread.active *= 0.85;
-                }
+        this.animationTime++;
+        const cycle = this.animationTime % this.cycleDuration;
+        
+        // Determine global phase based on cycle - shorter, more balanced phases
+        if (cycle < 30) {
+            this.currentPhase = 'load';
+        } else if (cycle < 140) {
+            this.currentPhase = 'compute';
+        } else if (cycle < 170) {
+            this.currentPhase = 'store';
+        } else {
+            this.currentPhase = 'idle';
+        }
+        
+        // Update each SM block
+        this.blocks.forEach((block, blockIdx) => {
+            const blockDelay = blockIdx * 3; // Stagger block execution (reduced for faster flow)
+            const localCycle = (cycle + this.cycleDuration - blockDelay) % this.cycleDuration;
+            
+            // Update block phase
+            if (localCycle < 30) {
+                block.phase = 'load';
+                block.phaseProgress = localCycle / 30;
+            } else if (localCycle < 140) {
+                block.phase = 'compute';
+                block.phaseProgress = (localCycle - 30) / 110;
+            } else if (localCycle < 170) {
+                block.phase = 'store';
+                block.phaseProgress = (localCycle - 140) / 30;
+            } else {
+                block.phase = 'idle';
+                block.phaseProgress = 0;
+            }
+            
+            // Update warps
+            block.warps.forEach((warp, warpIdx) => {
+                const warpDelay = warpIdx * 8; // Reduced delay for smoother transitions
+                const warpCycle = (localCycle + this.cycleDuration - warpDelay) % this.cycleDuration;
+                
+                warp.active = warpCycle < 170;
+                warp.syncPoint = Math.floor(warpCycle / 30) % 3;
+                
+                // Update threads in warp (all threads in a warp execute in lockstep)
+                warp.threads.forEach(thread => {
+                    if (warpCycle < 30) {
+                        // Loading phase
+                        thread.state = 'loading';
+                        const loadProgress = warpCycle / 30;
+                        thread.value = loadProgress * 100;
+                        
+                        // Mark memory access with pulsing
+                        if (warpCycle % 5 === 0) {
+                            this.globalMemory.cells[thread.targetMemory].accessed = 1;
+                        }
+                    } else if (warpCycle < 140) {
+                        // Computing phase - more dynamic visualization
+                        thread.state = 'computing';
+                        thread.computeProgress = (warpCycle - 30) / 110;
+                        // More dynamic value changes during compute
+                        const computePhase = thread.computeProgress * Math.PI * 6;
+                        thread.value = 50 + Math.sin(computePhase + thread.id * 0.2) * 50;
+                        
+                        // More frequent shared memory access during compute
+                        if (warpCycle % 12 === 0) {
+                            const smIdx = thread.id % block.sharedMemory.length;
+                            block.sharedMemory[smIdx].accessed = 1;
+                            block.sharedMemory[smIdx].value = thread.value;
+                        }
+                    } else if (warpCycle < 170) {
+                        // Storing phase
+                        thread.state = 'storing';
+                        const storeProgress = (warpCycle - 140) / 30;
+                        
+                        // Mark memory write with pulsing
+                        if (warpCycle % 5 === 0) {
+                            this.globalMemory.cells[thread.targetMemory].accessed = 1;
+                            this.globalMemory.cells[thread.targetMemory].data = thread.value;
+                        }
+                    } else {
+                        thread.state = 'idle';
+                        thread.computeProgress = 0;
+                        thread.value *= 0.9; // Gradually decay
+                    }
+                });
             });
+            
+            // Decay shared memory access indicators
+            block.sharedMemory.forEach(sm => {
+                sm.accessed *= 0.85;
+            });
+            
+            // More dynamic active warp switching
+            block.activeWarp = Math.floor(localCycle / 85) % block.warps.length;
+        });
+        
+        // Decay global memory access indicators
+        this.globalMemory.cells.forEach(cell => {
+            cell.accessed *= 0.88;
         });
     }
     
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        const w = this.canvas.width;
+        const h = this.canvas.height;
         
-        // Draw grid outline
-        this.ctx.strokeStyle = '#667EEA';
-        this.ctx.lineWidth = 3;
-        this.ctx.strokeRect(this.grid.x, this.grid.y, this.grid.width, this.grid.height);
+        // Draw title
+        this.ctx.fillStyle = '#333';
+        this.ctx.font = 'bold 18px sans-serif';
+        this.ctx.fillText('GPU Architecture: CUDA Kernel Execution', w * 0.05, h * 0.08);
         
-        // Draw blocks
-        this.blocks.forEach(block => {
-            // Block outline
-            this.ctx.strokeStyle = '#9B59B6';
-            this.ctx.lineWidth = 2;
-            this.ctx.globalAlpha = 0.3 + block.active * 0.7;
+        // Draw phase indicator
+        this.ctx.font = '14px sans-serif';
+        const phaseColors = {
+            idle: '#999',
+            load: '#3498db',
+            compute: '#e74c3c',
+            store: '#2ecc71'
+        };
+        this.ctx.fillStyle = phaseColors[this.currentPhase];
+        this.ctx.fillText(`Phase: ${this.currentPhase.toUpperCase()}`, w * 0.05, h * 0.11);
+        
+        // Draw SM blocks
+        this.blocks.forEach((block) => {
+            // Block outline with phase color
+            const phaseColor = phaseColors[block.phase];
+            this.ctx.strokeStyle = phaseColor;
+            this.ctx.lineWidth = 3;
+            this.ctx.globalAlpha = block.phase === 'idle' ? 0.3 : 0.8;
             this.ctx.strokeRect(block.x, block.y, block.width, block.height);
             
-            // Block fill
-            this.ctx.fillStyle = 'rgba(155, 89, 182, 0.1)';
+            // Block background
+            this.ctx.fillStyle = `${phaseColor}15`;
+            this.ctx.globalAlpha = 1;
             this.ctx.fillRect(block.x, block.y, block.width, block.height);
             
-            // Draw threads
-            block.threads.forEach(thread => {
-                const intensity = thread.active;
+            // Block label
+            this.ctx.fillStyle = '#333';
+            this.ctx.font = 'bold 11px sans-serif';
+            this.ctx.fillText(`SM ${block.id}`, block.x + 5, block.y + 12);
+            
+            // Draw warps and threads
+            block.warps.forEach((warp, wIdx) => {
+                const warpActive = warp.active;
                 
-                // Thread glow
-                if (intensity > 0.3) {
-                    const gradient = this.ctx.createRadialGradient(
-                        thread.x, thread.y, 0,
-                        thread.x, thread.y, thread.radius * 3
-                    );
-                    gradient.addColorStop(0, `rgba(80, 227, 194, ${intensity * 0.6})`);
-                    gradient.addColorStop(1, 'rgba(80, 227, 194, 0)');
-                    
-                    this.ctx.fillStyle = gradient;
-                    this.ctx.beginPath();
-                    this.ctx.arc(thread.x, thread.y, thread.radius * 3, 0, Math.PI * 2);
-                    this.ctx.fill();
+                // Warp indicator
+                if (warpActive) {
+                    this.ctx.strokeStyle = block.activeWarp === wIdx ? '#f39c12' : '#95a5a6';
+                    this.ctx.lineWidth = block.activeWarp === wIdx ? 2 : 1;
+                    this.ctx.globalAlpha = 0.5;
+                    const warpBounds = {
+                        x: warp.threads[0].x - 2,
+                        y: warp.threads[0].y - 2,
+                        width: (warp.threads[7].x - warp.threads[0].x) + warp.threads[0].size + 4,
+                        height: (warp.threads[24].y - warp.threads[0].y) + warp.threads[0].size + 4
+                    };
+                    this.ctx.strokeRect(warpBounds.x, warpBounds.y, warpBounds.width, warpBounds.height);
                 }
                 
-                // Thread core
-                this.ctx.fillStyle = `rgba(80, 227, 194, ${0.3 + intensity * 0.7})`;
-                this.ctx.globalAlpha = 1;
-                this.ctx.beginPath();
-                this.ctx.arc(thread.x, thread.y, thread.radius, 0, Math.PI * 2);
-                this.ctx.fill();
+                // Draw threads
+                warp.threads.forEach(thread => {
+                    this.ctx.globalAlpha = 1;
+                    
+                    // Thread color based on state
+                    let color;
+                    let intensity = 0.5;
+                    
+                    switch (thread.state) {
+                        case 'loading':
+                            color = '#3498db';
+                            intensity = 0.7 + Math.sin(this.animationTime * 0.5) * 0.3;
+                            break;
+                        case 'computing':
+                            color = '#e74c3c';
+                            // Pulsing effect during compute to show activity
+                            const computePulse = Math.sin(this.animationTime * 0.4 + thread.id * 0.3);
+                            intensity = 0.6 + computePulse * 0.4;
+                            break;
+                        case 'storing':
+                            color = '#2ecc71';
+                            intensity = 0.7 + Math.sin(this.animationTime * 0.5) * 0.3;
+                            break;
+                        default:
+                            color = '#95a5a6';
+                            intensity = 0.3;
+                    }
+                    
+                    // Thread square
+                    this.ctx.fillStyle = color;
+                    this.ctx.globalAlpha = intensity;
+                    this.ctx.fillRect(thread.x, thread.y, thread.size, thread.size);
+                    
+                    // Thread outline
+                    this.ctx.strokeStyle = color;
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.lineWidth = 1;
+                    this.ctx.strokeRect(thread.x, thread.y, thread.size, thread.size);
+                    
+                    // Draw data flow lines during load/store
+                    if (thread.state === 'loading' || thread.state === 'storing') {
+                        const progress = Math.sin(this.animationTime * 0.2) * 0.5 + 0.5;
+                        const memCell = this.globalMemory.cells[thread.targetMemory];
+                        
+                        const fromX = thread.state === 'loading' ? memCell.x : thread.x + thread.size;
+                        const fromY = thread.state === 'loading' ? memCell.y + memCell.height / 2 : thread.y + thread.size / 2;
+                        const toX = thread.state === 'loading' ? thread.x + thread.size : memCell.x;
+                        const toY = thread.state === 'loading' ? thread.y + thread.size / 2 : memCell.y + memCell.height / 2;
+                        
+                        const currentX = fromX + (toX - fromX) * progress;
+                        const currentY = fromY + (toY - fromY) * progress;
+                        
+                        this.ctx.strokeStyle = color;
+                        this.ctx.globalAlpha = 0.3;
+                        this.ctx.lineWidth = 1;
+                        this.ctx.setLineDash([2, 2]);
+                        this.ctx.beginPath();
+                        this.ctx.moveTo(fromX, fromY);
+                        this.ctx.lineTo(toX, toY);
+                        this.ctx.stroke();
+                        this.ctx.setLineDash([]);
+                        
+                        // Animated dot
+                        this.ctx.fillStyle = color;
+                        this.ctx.globalAlpha = 0.8;
+                        this.ctx.beginPath();
+                        this.ctx.arc(currentX, currentY, 2, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                });
                 
-                this.ctx.strokeStyle = '#50E3C2';
-                this.ctx.lineWidth = 1;
-                this.ctx.stroke();
+                this.ctx.globalAlpha = 1;
             });
         });
         
-        // Labels
-        this.ctx.globalAlpha = 1;
+        // Draw Global Memory
+        this.ctx.strokeStyle = '#7f8c8d';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(
+            this.globalMemory.x,
+            this.globalMemory.y - 20,
+            this.globalMemory.width,
+            this.globalMemory.height + 20
+        );
+        
         this.ctx.fillStyle = '#333';
-        this.ctx.font = 'bold 14px sans-serif';
-        this.ctx.fillText('Grid of Blocks', this.grid.x, this.grid.y - 10);
+        this.ctx.font = 'bold 12px sans-serif';
+        this.ctx.fillText(
+            this.globalMemory.label,
+            this.globalMemory.x + 5,
+            this.globalMemory.y - 5
+        );
+        
+        // Draw memory cells
+        this.globalMemory.cells.forEach(cell => {
+            // Cell background
+            const accessIntensity = cell.accessed;
+            this.ctx.fillStyle = accessIntensity > 0.5 
+                ? `rgba(52, 152, 219, ${accessIntensity * 0.3})`
+                : 'rgba(200, 200, 200, 0.1)';
+            this.ctx.fillRect(cell.x, cell.y, cell.width, cell.height);
+            
+            // Cell border
+            this.ctx.strokeStyle = accessIntensity > 0.5 ? '#3498db' : '#bdc3c7';
+            this.ctx.lineWidth = accessIntensity > 0.5 ? 2 : 1;
+            this.ctx.strokeRect(cell.x, cell.y, cell.width, cell.height);
+            
+            // Cell data value
+            this.ctx.fillStyle = '#333';
+            this.ctx.font = '9px monospace';
+            this.ctx.fillText(
+                Math.floor(cell.data).toString().padStart(2, '0'),
+                cell.x + 5,
+                cell.y + cell.height / 2 + 3
+            );
+            
+            // Access indicator
+            if (accessIntensity > 0.5) {
+                this.ctx.fillStyle = '#e74c3c';
+                this.ctx.globalAlpha = accessIntensity;
+                this.ctx.beginPath();
+                this.ctx.arc(cell.x + cell.width - 8, cell.y + 8, 3, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.globalAlpha = 1;
+            }
+        });
+        
+        // Legend
+        const legendX = w * 0.05;
+        const legendY = h * 0.88;
+        const legendItems = [
+            { label: 'Loading', color: '#3498db' },
+            { label: 'Computing', color: '#e74c3c' },
+            { label: 'Storing', color: '#2ecc71' },
+            { label: 'Idle', color: '#95a5a6' }
+        ];
+        
+        this.ctx.font = '11px sans-serif';
+        legendItems.forEach((item, i) => {
+            const x = legendX + i * 100;
+            this.ctx.fillStyle = item.color;
+            this.ctx.fillRect(x, legendY, 15, 15);
+            this.ctx.strokeStyle = '#333';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(x, legendY, 15, 15);
+            this.ctx.fillStyle = '#333';
+            this.ctx.fillText(item.label, x + 20, legendY + 11);
+        });
+        
+        this.ctx.globalAlpha = 1;
     }
 }
 
@@ -3189,7 +3484,8 @@ function initCUDA() {
         
         document.getElementById('cuda-reset').addEventListener('click', () => {
             state.cuda.running = false;
-            cudaViz.setupGrid();
+            cudaViz.animationTime = 0;
+            cudaViz.setupArchitecture();
             cudaViz.draw();
             document.getElementById('cuda-start').textContent = 'Launch Kernel';
         });
