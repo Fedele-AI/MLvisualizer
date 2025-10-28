@@ -3286,10 +3286,12 @@ class CUDAVisualizer {
             this.ctx.globalAlpha = 1;
             this.ctx.fillRect(block.x, block.y, block.width, block.height);
             
-            // Block label
+            // Block label - more descriptive names
+            const smNames = ['Tensor Core 0', 'CUDA Core A', 'CUDA Core B', 
+                           'RT Core 0', 'Tensor Core 1', 'CUDA Core C'];
             this.ctx.fillStyle = '#333';
             this.ctx.font = 'bold 11px sans-serif';
-            this.ctx.fillText(`SM ${block.id}`, block.x + 5, block.y + 12);
+            this.ctx.fillText(smNames[block.id] || `SM ${block.id}`, block.x + 5, block.y + 12);
             
             // Draw warps and threads
             block.warps.forEach((warp, wIdx) => {
