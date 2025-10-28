@@ -722,17 +722,27 @@ canvas {
 /* Deep Perceptron specific labels */
 .deep-input-label {
     background: #d6ebf7;
-    color: #3872a3;
+    color: #4A90E2;
 }
 
-.deep-hidden-label {
+.deep-hidden-label:nth-child(2) {
     background: #e8daef;
-    color: #7d3c98;
+    color: #9B59B6;
+}
+
+.deep-hidden-label:nth-child(3) {
+    background: #fadbd8;
+    color: #E74C3C;
+}
+
+.deep-hidden-label:nth-child(4) {
+    background: #fef5e7;
+    color: #F39C12;
 }
 
 .deep-output-label {
     background: #d4f4e5;
-    color: #3eaf7c;
+    color: #50E3C2;
 }
 
 /* Normalizing Flow specific labels */

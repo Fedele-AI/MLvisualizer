@@ -1772,7 +1772,6 @@ function animateTransformer() {
     
     transformerViz.update();
     transformerViz.draw();
-    
     requestAnimationFrame(animateTransformer);
 }
 
@@ -1790,12 +1789,13 @@ class DeepPerceptronVisualizer {
         this.layerProgress = 0;
         this.cycleProgress = 0;
         this.resize();
-        this.setupLayers();
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
     resize() {
-        this.canvas.width = this.canvas.offsetWidth;
-        this.canvas.height = this.canvas.offsetHeight;
+        const rect = this.canvas.getBoundingClientRect();
+        this.canvas.width = rect.width;
+        this.canvas.height = rect.height;
         this.setupLayers();
     }
     
@@ -1803,6 +1803,8 @@ class DeepPerceptronVisualizer {
         const w = this.canvas.width;
         const h = this.canvas.height;
         const layerSizes = [3, 5, 4, 3, 2];
+        const layerColors = ['#4A90E2', '#9B59B6', '#E74C3C', '#F39C12', '#50E3C2'];
+        const layerNames = ['INPUT', 'HIDDEN 1', 'HIDDEN 2', 'HIDDEN 3', 'OUTPUT'];
         this.layers = [];
         
         const nodeRadius = Math.max(8, Math.min(15, w / 50));
@@ -1820,8 +1822,8 @@ class DeepPerceptronVisualizer {
                     radius: nodeRadius,
                     activation: 0,
                     targetActivation: 0,
-                    color: layerIdx === 0 ? '#4A90E2' : 
-                           layerIdx === layerSizes.length - 1 ? '#50E3C2' : '#9B59B6'
+                    color: layerColors[layerIdx],
+                    layerName: layerNames[layerIdx]
                 });
             }
             this.layers.push(layer);
@@ -1843,8 +1845,8 @@ class DeepPerceptronVisualizer {
             });
         });
         
-        // Linear cycle progress
-        this.cycleProgress += 0.005 * speed;
+        // Linear cycle progress (slowed down)
+        this.cycleProgress += 0.002 * speed;
         
         // Reset cycle after completing all layers
         if (this.cycleProgress >= 1.0) {
@@ -1916,7 +1918,7 @@ class DeepPerceptronVisualizer {
                             targetY: targetNode.y,
                             progress: 0,
                             life: 1,
-                            speed: 0.025
+                            speed: 0.015
                         });
                     }
                 });
@@ -1928,8 +1930,8 @@ class DeepPerceptronVisualizer {
         // Update particles smoothly
         this.particles = this.particles.filter(p => {
             if (!p) return false;
-            p.progress = Math.min(1, (p.progress || 0) + (p.speed || 0.025));
-            p.life = Math.max(0, (p.life || 1) - 0.012);
+            p.progress = Math.min(1, (p.progress || 0) + (p.speed || 0.015));
+            p.life = Math.max(0, (p.life || 1) - 0.008);
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -2020,15 +2022,6 @@ class DeepPerceptronVisualizer {
                 this.ctx.stroke();
             });
         });
-        
-        // Draw status text
-        this.ctx.fillStyle = '#333';
-        this.ctx.font = 'bold 14px sans-serif';
-        this.ctx.textAlign = 'center';
-        const layerNames = ['Input Layer', 'Hidden Layer 1', 'Hidden Layer 2', 'Hidden Layer 3', 'Output Layer'];
-        if (this.currentLayer < layerNames.length) {
-            this.ctx.fillText(`Processing: ${layerNames[this.currentLayer]}`, this.canvas.width / 2, 25);
-        }
     }
     
     easeInOutCubic(t) {
@@ -2299,10 +2292,7 @@ function animateNormalizingFlow() {
     
     normalizingFlowViz.update();
     normalizingFlowViz.draw();
-    
-    setTimeout(() => {
-        requestAnimationFrame(animateNormalizingFlow);
-    }, 1000 / state.normalizingFlow.speed);
+    requestAnimationFrame(animateNormalizingFlow);
 }
 
 // ====== VAE Visualization ======
@@ -3011,10 +3001,7 @@ function animateMamba2() {
     
     mamba2Viz.update();
     mamba2Viz.draw();
-    
-    setTimeout(() => {
-        requestAnimationFrame(animateMamba2);
-    }, 1000 / state.mamba2.speed);
+    requestAnimationFrame(animateMamba2);
 }
 
 // ====== CUDA Visualization ======
