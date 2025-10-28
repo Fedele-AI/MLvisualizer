@@ -2327,19 +2327,29 @@ class NormalizingFlowVisualizer {
                 node.activation *= 0.92;
             });
         });
-        
-        // Linear layer-by-layer flow
+
+        // Animation speed scaling
+        const minSpeed = 2; // slowest
+        const maxSpeed = 5;   // fastest
+        const userSpeed = state.normalizingFlow?.speed || 1;
+        // Map userSpeed (1-10 slider?) to [minSpeed, maxSpeed]
+        const speedScale = minSpeed + (maxSpeed - minSpeed) * ((userSpeed - 1) / 9);
+
+        // The higher the speed, the more often we trigger a flow step
+        // At slowest, interval is longer; at fastest, it's shorter
+        const baseInterval = 30; // higher = slower
+        const interval = Math.round(baseInterval / speedScale);
         this.dataFlowTimer++;
-        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 15 === 0) {
+        if (this.dataFlowTimer === 1 || this.dataFlowTimer % interval === 0) {
             if (this.currentLayer < this.layers.length - 1) {
                 const sourceLayer = this.layers[this.currentLayer];
                 const targetLayer = this.layers[this.currentLayer + 1];
-                
+
                 sourceLayer.forEach(sourceNode => {
                     if (this.currentLayer === 0 || sourceNode.activation > 0.3) {
                         sourceNode.activation = 0.9;
                         const targetNode = targetLayer[Math.floor(Math.random() * targetLayer.length)];
-                        
+
                         this.particles.push({
                             x: sourceNode.x,
                             y: sourceNode.y,
@@ -2351,25 +2361,27 @@ class NormalizingFlowVisualizer {
                         });
                     }
                 });
-                
+
                 this.currentLayer++;
                 if (this.currentLayer >= this.layers.length - 1) {
                     this.currentLayer = 0;
                 }
             }
         }
-        
-        // Update particles with smooth easing
+
+        // Update particles with smooth easing, scale by speed
+        const progressStep = 0.02 + 0.10 * speedScale; // 0.02 (slow) to 0.32 (fast)
+        const lifeStep = 0.005 + 0.03 * speedScale;    // 0.005 (slow) to 0.035 (fast)
         this.particles = this.particles.filter(p => {
-            p.progress += 0.08;
-            p.life -= 0.02;
-            
+            p.progress += progressStep;
+            p.life -= lifeStep;
+
             // Activate target when particle arrives
             if (p.progress >= 0.9 && p.targetNode) {
                 p.targetNode.activation = 0.9;
                 p.targetNode = null;
             }
-            
+
             return p.life > 0 && p.progress < 1;
         });
     }
