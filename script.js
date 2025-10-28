@@ -1326,6 +1326,16 @@ class HopfieldVisualizer {
         this.draw();
     }
     
+    clearCanvas() {
+        // Clear the canvas to all white (all -1 values)
+        for (let i = 0; i < this.size; i++) {
+            for (let j = 0; j < this.size; j++) {
+                this.state[i][j] = -1;
+            }
+        }
+        this.isRecalling = false;
+    }
+    
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
@@ -1380,6 +1390,11 @@ function initHopfield() {
             const noiseLevel = parseInt(document.getElementById('hopfield-noise').value);
             hopfieldViz.addNoise(noiseLevel);
             setTimeout(() => hopfieldViz.recall(), 500);
+        });
+        
+        document.getElementById('hopfield-clear').addEventListener('click', () => {
+            hopfieldViz.clearCanvas();
+            hopfieldViz.draw();
         });
         
         document.getElementById('hopfield-reset').addEventListener('click', () => {
