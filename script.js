@@ -1,3 +1,17 @@
+// ====== Utility Functions ======
+// Debounce function for resize events
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // ====== Global State ======
 const state = {
     currentView: 'homepage', // homepage or demo
@@ -78,6 +92,26 @@ document.addEventListener('DOMContentLoaded', () => {
     // Back button handler
     document.getElementById('back-to-home').addEventListener('click', () => {
         showHomepage();
+    });
+
+    // Info button handlers
+    const infoButton = document.getElementById('info-button');
+    const infoPopup = document.getElementById('info-popup');
+    const infoPopupClose = document.getElementById('info-popup-close');
+
+    infoButton.addEventListener('click', () => {
+        infoPopup.classList.add('active');
+    });
+
+    infoPopupClose.addEventListener('click', () => {
+        infoPopup.classList.remove('active');
+    });
+
+    // Close popup when clicking outside
+    infoPopup.addEventListener('click', (e) => {
+        if (e.target === infoPopup) {
+            infoPopup.classList.remove('active');
+        }
     });
 });
 
@@ -188,7 +222,7 @@ class PerceptronVisualizer {
         this.currentSample = 0;
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
     resize() {
@@ -201,8 +235,9 @@ class PerceptronVisualizer {
     
     setupNodes() {
         const inputCount = 4;
-        const nodeRadius = 30;
-        const padding = 100;
+        // Responsive node radius and padding based on canvas size
+        const nodeRadius = Math.max(15, Math.min(30, this.canvas.width / 20));
+        const padding = Math.max(50, Math.min(100, this.canvas.width / 8));
         
         this.inputs = [];
         this.weights = [];
@@ -225,7 +260,7 @@ class PerceptronVisualizer {
         this.output = {
             x: this.canvas.width - padding,
             y: this.canvas.height / 2,
-            radius: nodeRadius + 10,
+            radius: nodeRadius + Math.min(10, nodeRadius * 0.3),
             value: 0,
             target: 0
         };
@@ -282,6 +317,11 @@ class PerceptronVisualizer {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Responsive font sizes
+        const baseFontSize = Math.max(10, Math.min(14, this.canvas.width / 40));
+        const labelFontSize = Math.max(11, Math.min(16, this.canvas.width / 35));
+        const epochFontSize = Math.max(14, Math.min(20, this.canvas.width / 30));
+        
         // Draw connections with weights
         this.inputs.forEach((input, i) => {
             const weight = this.weights[i];
@@ -295,12 +335,14 @@ class PerceptronVisualizer {
             this.ctx.lineTo(this.output.x - this.output.radius, this.output.y);
             this.ctx.stroke();
             
-            // Draw weight value
-            const midX = (input.x + this.output.x) / 2;
-            const midY = (input.y + this.output.y) / 2;
-            this.ctx.fillStyle = '#333';
-            this.ctx.font = 'bold 12px sans-serif';
-            this.ctx.fillText(weight.toFixed(2), midX, midY);
+            // Draw weight value (only if canvas is wide enough)
+            if (this.canvas.width > 400) {
+                const midX = (input.x + this.output.x) / 2;
+                const midY = (input.y + this.output.y) / 2;
+                this.ctx.fillStyle = '#333';
+                this.ctx.font = `bold ${baseFontSize}px sans-serif`;
+                this.ctx.fillText(weight.toFixed(2), midX, midY);
+            }
         });
         
         // Draw input nodes
@@ -309,7 +351,7 @@ class PerceptronVisualizer {
             
             // Label
             this.ctx.fillStyle = '#333';
-            this.ctx.font = '14px sans-serif';
+            this.ctx.font = `${baseFontSize}px sans-serif`;
             this.ctx.textAlign = 'right';
             this.ctx.fillText(`x${i}`, input.x - input.radius - 10, input.y + 5);
         });
@@ -320,15 +362,16 @@ class PerceptronVisualizer {
         
         // Show target vs predicted
         this.ctx.fillStyle = '#333';
-        this.ctx.font = 'bold 16px sans-serif';
+        this.ctx.font = `bold ${labelFontSize}px sans-serif`;
         this.ctx.textAlign = 'left';
-        this.ctx.fillText(`Predicted: ${this.output.value}`, this.output.x + this.output.radius + 20, this.output.y - 10);
-        this.ctx.fillText(`Target: ${this.output.target}`, this.output.x + this.output.radius + 20, this.output.y + 15);
+        const labelX = Math.min(this.output.x + this.output.radius + 20, this.canvas.width - 100);
+        this.ctx.fillText(`Predicted: ${this.output.value}`, labelX, this.output.y - 10);
+        this.ctx.fillText(`Target: ${this.output.target}`, labelX, this.output.y + 15);
         
         // Show epoch
         if (state.perceptron.running) {
             this.ctx.fillStyle = '#667eea';
-            this.ctx.font = 'bold 20px sans-serif';
+            this.ctx.font = `bold ${epochFontSize}px sans-serif`;
             this.ctx.textAlign = 'center';
             this.ctx.fillText(`Epoch: ${state.perceptron.epoch}`, this.canvas.width / 2, 40);
         }
@@ -336,7 +379,7 @@ class PerceptronVisualizer {
     
     drawNode(node, color, value) {
         // Glow
-        const glowRadius = node.radius + 8;
+        const glowRadius = node.radius + Math.min(8, node.radius * 0.3);
         const gradient = this.ctx.createRadialGradient(
             node.x, node.y, node.radius,
             node.x, node.y, glowRadius
@@ -359,14 +402,15 @@ class PerceptronVisualizer {
         // Border
         this.ctx.globalAlpha = 1;
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = Math.max(2, node.radius / 10);
         this.ctx.beginPath();
         this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         this.ctx.stroke();
         
         // Value
         this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 14px sans-serif';
+        const valueFontSize = Math.max(10, Math.min(14, node.radius * 0.8));
+        this.ctx.font = `bold ${valueFontSize}px sans-serif`;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(value.toFixed(2), node.x, node.y);
@@ -435,7 +479,7 @@ class RBMVisualizer {
         this.particles = [];
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
     resize() {
@@ -448,8 +492,9 @@ class RBMVisualizer {
     setupNodes() {
         const visibleCount = 8;
         const hiddenCount = 5;
-        const nodeRadius = 25;
-        const padding = 100;
+        // Responsive node radius and padding
+        const nodeRadius = Math.max(12, Math.min(25, this.canvas.width / 30));
+        const padding = Math.max(50, Math.min(100, this.canvas.width / 8));
         
         this.visibleNodes = [];
         this.hiddenNodes = [];
@@ -569,6 +614,9 @@ class RBMVisualizer {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Responsive particle size
+        const particleSize = Math.max(5, Math.min(8, this.canvas.width / 80));
+        
         // Draw connections
         this.connections.forEach(conn => {
             const alpha = Math.abs(conn.weight) * 0.3;
@@ -587,13 +635,13 @@ class RBMVisualizer {
             const x = p.x + (p.targetX - p.x) * p.progress;
             const y = p.y + (p.targetY - p.y) * p.progress;
             
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 8);
+            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, particleSize);
             gradient.addColorStop(0, `rgba(255, 215, 0, ${p.life})`);
             gradient.addColorStop(1, `rgba(255, 215, 0, 0)`);
             
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, 8, 0, Math.PI * 2);
+            this.ctx.arc(x, y, particleSize, 0, Math.PI * 2);
             this.ctx.fill();
         });
         
@@ -610,8 +658,9 @@ class RBMVisualizer {
         // Draw phase indicator
         if (state.rbm.running) {
             const text = state.rbm.phase === 'forward' ? '→ Forward Pass' : '← Backward Pass';
+            const fontSize = Math.max(14, Math.min(18, this.canvas.width / 35));
             this.ctx.fillStyle = '#333';
-            this.ctx.font = 'bold 18px sans-serif';
+            this.ctx.font = `bold ${fontSize}px sans-serif`;
             this.ctx.textAlign = 'center';
             this.ctx.fillText(text, this.canvas.width / 2, 30);
         }
@@ -619,7 +668,7 @@ class RBMVisualizer {
     
     drawNode(node, color) {
         // Outer glow based on activation
-        const glowRadius = node.radius + 10;
+        const glowRadius = node.radius + Math.min(10, node.radius * 0.4);
         const gradient = this.ctx.createRadialGradient(
             node.x, node.y, node.radius,
             node.x, node.y, glowRadius
@@ -642,14 +691,15 @@ class RBMVisualizer {
         // Node border
         this.ctx.globalAlpha = 1;
         this.ctx.strokeStyle = color;
-        this.ctx.lineWidth = 3;
+        this.ctx.lineWidth = Math.max(2, node.radius / 10);
         this.ctx.beginPath();
         this.ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
         this.ctx.stroke();
         
         // Activation value
         this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 12px sans-serif';
+        const fontSize = Math.max(9, Math.min(12, node.radius * 0.7));
+        this.ctx.font = `bold ${fontSize}px sans-serif`;
         this.ctx.textAlign = 'center';
         this.ctx.textBaseline = 'middle';
         this.ctx.fillText(node.activation.toFixed(2), node.x, node.y);
@@ -720,7 +770,7 @@ class AutoencoderVisualizer {
         this.particles = [];
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
     resize() {
@@ -733,8 +783,9 @@ class AutoencoderVisualizer {
     setupLayers() {
         const layerSizes = [8, 5, 3, 5, 8];
         const layerColors = ['#388e3c', '#f57f17', '#e65100', '#f57f17', '#388e3c'];
-        const nodeRadius = 20;
-        const padding = 80;
+        // Responsive node radius and padding
+        const nodeRadius = Math.max(10, Math.min(20, this.canvas.width / 40));
+        const padding = Math.max(40, Math.min(80, this.canvas.width / 10));
         
         this.layers = [];
         const layerSpacing = (this.canvas.width - 2 * padding) / (layerSizes.length - 1);
@@ -979,7 +1030,7 @@ class IsingVisualizer {
         this.energy = 0;
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
     resize() {
@@ -1132,7 +1183,7 @@ class HopfieldVisualizer {
         this.isRecalling = false;
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
         this.setupMouseInteraction();
     }
     
@@ -1140,7 +1191,9 @@ class HopfieldVisualizer {
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
-        this.cellSize = Math.min(this.canvas.width, this.canvas.height) / this.size;
+        // Make cell size more responsive, with minimum size for mobile
+        const maxSize = Math.min(this.canvas.width, this.canvas.height);
+        this.cellSize = Math.max(15, maxSize / this.size);
         this.initializeState();
     }
     
@@ -1356,7 +1409,7 @@ class TransformerVisualizer {
         this.particles = [];
         
         this.resize();
-        window.addEventListener('resize', () => this.resize());
+        window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
     resize() {
@@ -1370,8 +1423,9 @@ class TransformerVisualizer {
         const layerCount = 5; // Input, Attention, Context, FFN, Output
         const tokenCount = this.tokens.length;
         const layerColors = ['#388e3c', '#f57f17', '#e65100', '#f57f17', '#388e3c'];
-        const nodeRadius = 15;
-        const padding = 80;
+        // Responsive node radius and padding
+        const nodeRadius = Math.max(10, Math.min(15, this.canvas.width / 50));
+        const padding = Math.max(40, Math.min(80, this.canvas.width / 10));
         
         this.layers = [];
         const layerSpacing = (this.canvas.width - 2 * padding) / (layerCount - 1);
@@ -1625,6 +1679,8 @@ class DeepPerceptronVisualizer {
         const layerSizes = [3, 5, 4, 3, 2];
         this.layers = [];
         
+        // Responsive node radius based on canvas size
+        const nodeRadius = Math.max(8, Math.min(15, w / 50));
         const spacing = w / (layerSizes.length + 1);
         
         layerSizes.forEach((size, layerIdx) => {
@@ -1636,7 +1692,7 @@ class DeepPerceptronVisualizer {
                 layer.push({
                     x: x,
                     y: nodeSpacing * (i + 1),
-                    radius: 15,
+                    radius: nodeRadius,
                     activation: 0,
                     color: layerIdx === 0 ? '#4A90E2' : 
                            layerIdx === layerSizes.length - 1 ? '#50E3C2' : '#9B59B6'
@@ -1647,10 +1703,10 @@ class DeepPerceptronVisualizer {
     }
     
     update() {
-        // Update activations with forward pass
+        // Decay activations smoothly
         this.layers.forEach((layer, idx) => {
             layer.forEach(node => {
-                node.activation = 0.3 + Math.random() * 0.7;
+                node.activation *= 0.95; // Smooth decay
             });
         });
         
@@ -1660,13 +1716,17 @@ class DeepPerceptronVisualizer {
             const sourceNode = this.layers[sourceLayer][Math.floor(Math.random() * this.layers[sourceLayer].length)];
             const targetNode = this.layers[sourceLayer + 1][Math.floor(Math.random() * this.layers[sourceLayer + 1].length)];
             
+            // Activate source node
+            sourceNode.activation = 1.0;
+            
             this.particles.push({
                 x: sourceNode.x,
                 y: sourceNode.y,
                 targetX: targetNode.x,
                 targetY: targetNode.y,
                 progress: 0,
-                life: 1
+                life: 1,
+                targetNode: targetNode
             });
         }
         
@@ -1674,6 +1734,13 @@ class DeepPerceptronVisualizer {
         this.particles = this.particles.filter(p => {
             p.progress += 0.05;
             p.life -= 0.02;
+            
+            // Activate target node when particle arrives
+            if (p.progress >= 0.9 && p.targetNode) {
+                p.targetNode.activation = 1.0;
+                p.targetNode = null; // Only activate once
+            }
+            
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -1774,7 +1841,7 @@ function animateDeepPerceptron() {
     
     setTimeout(() => {
         requestAnimationFrame(animateDeepPerceptron);
-    }, 100);
+    }, 1000 / state.deepPerceptron.speed);
 }
 
 // ====== Normalizing Flow Visualization ======
@@ -1787,6 +1854,8 @@ class NormalizingFlowVisualizer {
         this.ctx = canvas.getContext('2d');
         this.layers = [];
         this.particles = [];
+        this.currentLayer = 0;
+        this.dataFlowTimer = 0;
         this.resize();
         this.setupLayers();
     }
@@ -1803,6 +1872,8 @@ class NormalizingFlowVisualizer {
         const layerSizes = [8, 6, 6, 6, 8];
         this.layers = [];
         
+        // Responsive node radius
+        const nodeRadius = Math.max(8, Math.min(12, w / 60));
         const spacing = w / (layerSizes.length + 1);
         
         layerSizes.forEach((size, layerIdx) => {
@@ -1814,10 +1885,13 @@ class NormalizingFlowVisualizer {
                 layer.push({
                     x: x,
                     y: nodeSpacing * (i + 1),
-                    radius: 12,
+                    radius: nodeRadius,
                     activation: 0,
-                    color: layerIdx === 0 ? '#667EEA' : 
-                           layerIdx === layerSizes.length - 1 ? '#F77F17' : '#9B59B6'
+                    color: layerIdx === 0 ? '#667EEA' :      // Base Z - Blue
+                           layerIdx === 1 ? '#9B59B6' :      // Flow 1 - Purple
+                           layerIdx === 2 ? '#E056FD' :      // Flow 2 - Pink/Magenta
+                           layerIdx === 3 ? '#3498DB' :      // Flow 3 - Cyan/Blue
+                           '#F77F17'                         // Data X - Orange
                 });
             }
             this.layers.push(layer);
@@ -1825,30 +1899,55 @@ class NormalizingFlowVisualizer {
     }
     
     update() {
+        // Smooth decay for all nodes
         this.layers.forEach(layer => {
             layer.forEach(node => {
-                node.activation = 0.3 + Math.random() * 0.7;
+                node.activation *= 0.92;
             });
         });
         
-        if (Math.random() < 0.4) {
-            const sourceLayer = Math.floor(Math.random() * (this.layers.length - 1));
-            const sourceNode = this.layers[sourceLayer][Math.floor(Math.random() * this.layers[sourceLayer].length)];
-            const targetNode = this.layers[sourceLayer + 1][Math.floor(Math.random() * this.layers[sourceLayer + 1].length)];
-            
-            this.particles.push({
-                x: sourceNode.x,
-                y: sourceNode.y,
-                targetX: targetNode.x,
-                targetY: targetNode.y,
-                progress: 0,
-                life: 1
-            });
+        // Linear layer-by-layer flow
+        this.dataFlowTimer++;
+        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 15 === 0) {
+            if (this.currentLayer < this.layers.length - 1) {
+                const sourceLayer = this.layers[this.currentLayer];
+                const targetLayer = this.layers[this.currentLayer + 1];
+                
+                sourceLayer.forEach(sourceNode => {
+                    if (this.currentLayer === 0 || sourceNode.activation > 0.3) {
+                        sourceNode.activation = 0.9;
+                        const targetNode = targetLayer[Math.floor(Math.random() * targetLayer.length)];
+                        
+                        this.particles.push({
+                            x: sourceNode.x,
+                            y: sourceNode.y,
+                            targetX: targetNode.x,
+                            targetY: targetNode.y,
+                            progress: 0,
+                            life: 1,
+                            targetNode: targetNode
+                        });
+                    }
+                });
+                
+                this.currentLayer++;
+                if (this.currentLayer >= this.layers.length - 1) {
+                    this.currentLayer = 0;
+                }
+            }
         }
         
+        // Update particles with smooth easing
         this.particles = this.particles.filter(p => {
-            p.progress += 0.04;
-            p.life -= 0.015;
+            p.progress += 0.08;
+            p.life -= 0.02;
+            
+            // Activate target when particle arrives
+            if (p.progress >= 0.9 && p.targetNode) {
+                p.targetNode.activation = 0.9;
+                p.targetNode = null;
+            }
+            
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -1856,6 +1955,10 @@ class NormalizingFlowVisualizer {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Smooth easing function
+        const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+        
+        // Draw connections with subtle lines
         for (let i = 0; i < this.layers.length - 1; i++) {
             this.layers[i].forEach(node1 => {
                 this.layers[i + 1].forEach(node2 => {
@@ -1869,9 +1972,11 @@ class NormalizingFlowVisualizer {
             });
         }
         
+        // Draw particles with smooth easing
         this.particles.forEach(p => {
-            const x = p.x + (p.targetX - p.x) * p.progress;
-            const y = p.y + (p.targetY - p.y) * p.progress;
+            const eased = easeInOutCubic(p.progress);
+            const x = p.x + (p.targetX - p.x) * eased;
+            const y = p.y + (p.targetY - p.y) * eased;
             
             const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
             gradient.addColorStop(0, `rgba(155, 89, 182, ${p.life})`);
@@ -1883,8 +1988,20 @@ class NormalizingFlowVisualizer {
             this.ctx.fill();
         });
         
+        // Draw nodes with glow effect
         this.layers.forEach(layer => {
             layer.forEach(node => {
+                // Inner glow
+                if (node.activation > 0.3) {
+                    const glowGradient = this.ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.radius * 1.5);
+                    glowGradient.addColorStop(0, `${node.color}80`);
+                    glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    this.ctx.fillStyle = glowGradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, node.radius * 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
                 this.ctx.fillStyle = node.color;
                 this.ctx.globalAlpha = 0.2 + node.activation * 0.8;
                 this.ctx.beginPath();
@@ -1946,7 +2063,7 @@ function animateNormalizingFlow() {
     
     setTimeout(() => {
         requestAnimationFrame(animateNormalizingFlow);
-    }, 100);
+    }, 1000 / state.normalizingFlow.speed);
 }
 
 // ====== VAE Visualization ======
@@ -1959,6 +2076,8 @@ class VAEVisualizer {
         this.ctx = canvas.getContext('2d');
         this.layers = [];
         this.particles = [];
+        this.currentLayer = 0;
+        this.dataFlowTimer = 0;
         this.resize();
         this.setupLayers();
     }
@@ -1975,6 +2094,8 @@ class VAEVisualizer {
         const layerSizes = [8, 5, 3, 5, 8];
         this.layers = [];
         
+        // Responsive node radius
+        const nodeRadius = Math.max(9, Math.min(14, w / 55));
         const spacing = w / (layerSizes.length + 1);
         
         layerSizes.forEach((size, layerIdx) => {
@@ -1986,7 +2107,7 @@ class VAEVisualizer {
                 layer.push({
                     x: x,
                     y: nodeSpacing * (i + 1),
-                    radius: 14,
+                    radius: nodeRadius,
                     activation: 0,
                     color: layerIdx === 0 ? '#4ECDC4' : 
                            layerIdx === 2 ? '#FFD93D' :
@@ -1998,30 +2119,55 @@ class VAEVisualizer {
     }
     
     update() {
+        // Smooth decay for all nodes
         this.layers.forEach(layer => {
             layer.forEach(node => {
-                node.activation = 0.3 + Math.random() * 0.7;
+                node.activation *= 0.92;
             });
         });
         
-        if (Math.random() < 0.35) {
-            const sourceLayer = Math.floor(Math.random() * (this.layers.length - 1));
-            const sourceNode = this.layers[sourceLayer][Math.floor(Math.random() * this.layers[sourceLayer].length)];
-            const targetNode = this.layers[sourceLayer + 1][Math.floor(Math.random() * this.layers[sourceLayer + 1].length)];
-            
-            this.particles.push({
-                x: sourceNode.x,
-                y: sourceNode.y,
-                targetX: targetNode.x,
-                targetY: targetNode.y,
-                progress: 0,
-                life: 1
-            });
+        // Linear layer-by-layer flow
+        this.dataFlowTimer++;
+        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 15 === 0) {
+            if (this.currentLayer < this.layers.length - 1) {
+                const sourceLayer = this.layers[this.currentLayer];
+                const targetLayer = this.layers[this.currentLayer + 1];
+                
+                sourceLayer.forEach(sourceNode => {
+                    if (this.currentLayer === 0 || sourceNode.activation > 0.3) {
+                        sourceNode.activation = 0.9;
+                        const targetNode = targetLayer[Math.floor(Math.random() * targetLayer.length)];
+                        
+                        this.particles.push({
+                            x: sourceNode.x,
+                            y: sourceNode.y,
+                            targetX: targetNode.x,
+                            targetY: targetNode.y,
+                            progress: 0,
+                            life: 1,
+                            targetNode: targetNode
+                        });
+                    }
+                });
+                
+                this.currentLayer++;
+                if (this.currentLayer >= this.layers.length - 1) {
+                    this.currentLayer = 0;
+                }
+            }
         }
         
+        // Update particles with smooth easing
         this.particles = this.particles.filter(p => {
-            p.progress += 0.045;
-            p.life -= 0.018;
+            p.progress += 0.08;
+            p.life -= 0.02;
+            
+            // Activate target when particle arrives
+            if (p.progress >= 0.9 && p.targetNode) {
+                p.targetNode.activation = 0.9;
+                p.targetNode = null;
+            }
+            
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -2029,6 +2175,10 @@ class VAEVisualizer {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Smooth easing function
+        const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+        
+        // Draw connections with subtle lines
         for (let i = 0; i < this.layers.length - 1; i++) {
             this.layers[i].forEach(node1 => {
                 this.layers[i + 1].forEach(node2 => {
@@ -2042,9 +2192,11 @@ class VAEVisualizer {
             });
         }
         
+        // Draw particles with smooth easing
         this.particles.forEach(p => {
-            const x = p.x + (p.targetX - p.x) * p.progress;
-            const y = p.y + (p.targetY - p.y) * p.progress;
+            const eased = easeInOutCubic(p.progress);
+            const x = p.x + (p.targetX - p.x) * eased;
+            const y = p.y + (p.targetY - p.y) * eased;
             
             const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 5);
             gradient.addColorStop(0, `rgba(255, 217, 61, ${p.life})`);
@@ -2056,8 +2208,20 @@ class VAEVisualizer {
             this.ctx.fill();
         });
         
+        // Draw nodes with glow effect
         this.layers.forEach(layer => {
             layer.forEach(node => {
+                // Inner glow for active nodes
+                if (node.activation > 0.3) {
+                    const glowGradient = this.ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.radius * 1.5);
+                    glowGradient.addColorStop(0, `${node.color}80`);
+                    glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    this.ctx.fillStyle = glowGradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, node.radius * 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
                 this.ctx.fillStyle = node.color;
                 this.ctx.globalAlpha = 0.2 + node.activation * 0.8;
                 this.ctx.beginPath();
@@ -2119,7 +2283,7 @@ function animateVAE() {
     
     setTimeout(() => {
         requestAnimationFrame(animateVAE);
-    }, 100);
+    }, 1000 / state.vae.speed);
 }
 
 // ====== CNN Encoder-Decoder Visualization ======
@@ -2145,9 +2309,14 @@ class CNNEncoderDecoderVisualizer {
     setupMaps() {
         const w = this.canvas.width;
         const h = this.canvas.height;
-        const mapSizes = [64, 32, 16, 32, 64];
+        // Responsive map sizes - scale down on smaller screens
+        const baseMapSizes = [80, 56, 32, 56, 80];
+        const scaleFactor = Math.max(0.4, Math.min(1, w / 600));
+        const mapSizes = baseMapSizes.map(size => Math.floor(size * scaleFactor));
         const mapCounts = [3, 6, 12, 6, 3];
         this.featureMaps = [];
+        this.currentLayer = -1;
+        this.dataFlowTimer = 0;
         
         const spacing = w / (mapSizes.length + 1);
         
@@ -2156,14 +2325,18 @@ class CNNEncoderDecoderVisualizer {
             const x = spacing * (idx + 1);
             const count = mapCounts[idx];
             
+            // Calculate total height of all stacked maps
+            const totalHeight = count * size + (count - 1) * Math.max(5, 10 * scaleFactor);
+            const startY = h / 2 - totalHeight / 2;
+            
             for (let i = 0; i < count; i++) {
-                const offset = (count - 1) * 8;
                 maps.push({
-                    x: x - offset / 2 + i * 8,
-                    y: h / 2 - size / 2,
+                    x: x - size / 2,  // Center horizontally
+                    y: startY + i * (size + Math.max(5, 10 * scaleFactor)),  // Stack vertically with spacing
                     width: size,
                     height: size,
                     activation: 0,
+                    targetActivation: 0,
                     color: idx === 0 ? '#3498db' : 
                            idx === 2 ? '#e74c3c' :
                            idx === 4 ? '#2ecc71' : '#9b59b6'
@@ -2174,30 +2347,83 @@ class CNNEncoderDecoderVisualizer {
     }
     
     update() {
+        // Smooth activation decay (only for nodes that were hit)
         this.featureMaps.forEach(maps => {
             maps.forEach(map => {
-                map.activation = 0.3 + Math.random() * 0.7;
+                if (map.activation > 0) {
+                    map.activation *= 0.90;
+                    if (map.activation < 0.05) map.activation = 0;
+                }
             });
         });
         
-        if (Math.random() < 0.3) {
-            const sourceLayer = Math.floor(Math.random() * (this.featureMaps.length - 1));
-            const sourceMap = this.featureMaps[sourceLayer][0];
-            const targetMap = this.featureMaps[sourceLayer + 1][0];
-            
-            this.particles.push({
-                x: sourceMap.x + sourceMap.width / 2,
-                y: sourceMap.y + sourceMap.height / 2,
-                targetX: targetMap.x + targetMap.width / 2,
-                targetY: targetMap.y + targetMap.height / 2,
-                progress: 0,
-                life: 1
+        // Linear data flow: process one layer at a time
+        this.dataFlowTimer++;
+        
+        // Activate first layer initially and create first particles
+        if (this.dataFlowTimer === 1) {
+            this.currentLayer = 0;
+            // Activate all nodes in first layer
+            this.featureMaps[0].forEach(map => {
+                map.activation = 0.9;
             });
         }
         
+        // Every 25 frames, move to next layer (smoother flow timing)
+        if ((this.dataFlowTimer === 1 || this.dataFlowTimer % 25 === 0) && this.currentLayer >= 0 && this.currentLayer < this.featureMaps.length - 1) {
+            const sourceLayer = this.currentLayer;
+            const targetLayer = this.currentLayer + 1;
+            
+            // Create particles from current layer to next
+            const sourceMaps = this.featureMaps[sourceLayer];
+            const targetMaps = this.featureMaps[targetLayer];
+            
+            // Only create particles from ACTIVE source maps
+            sourceMaps.forEach((sourceMap, sourceIdx) => {
+                if (sourceMap.activation > 0.3) { // Only if node is active
+                    const numParticles = Math.ceil(targetMaps.length / sourceMaps.length);
+                    for (let i = 0; i < numParticles; i++) {
+                        const targetIdx = Math.floor(Math.random() * targetMaps.length);
+                        const targetMap = targetMaps[targetIdx];
+                        
+                        this.particles.push({
+                            x: sourceMap.x + sourceMap.width / 2,
+                            y: sourceMap.y + sourceMap.height / 2,
+                            targetX: targetMap.x + targetMap.width / 2,
+                            targetY: targetMap.y + targetMap.height / 2,
+                            progress: 0,
+                            life: 1,
+                            sourceLayer: sourceLayer,
+                            targetLayer: targetLayer,
+                            targetMapIndex: targetIdx
+                        });
+                    }
+                }
+            });
+            
+            this.currentLayer++;
+        }
+        
+        // Reset after completing the flow
+        if (this.currentLayer >= this.featureMaps.length - 1 && this.particles.length === 0) {
+            this.dataFlowTimer = 0;
+            this.currentLayer = -1;
+        }
+        
+        // Update particles and activate ONLY target maps that are hit
         this.particles = this.particles.filter(p => {
-            p.progress += 0.05;
-            p.life -= 0.02;
+            p.progress += 0.035; // Smoother, more controlled particle movement
+            p.life -= 0.02; // Slower life decay for better visibility
+            
+            // Activate target map when particle is close to arriving
+            if (p.progress >= 0.75 && p.progress < 0.85) {
+                const targetMaps = this.featureMaps[p.targetLayer];
+                if (targetMaps && targetMaps[p.targetMapIndex]) {
+                    // Set activation, don't add to it (prevents stacking)
+                    targetMaps[p.targetMapIndex].activation = 0.9;
+                }
+            }
+            
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -2205,32 +2431,75 @@ class CNNEncoderDecoderVisualizer {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Draw connection lines based on active particles - shows actual data flow
+        this.ctx.globalAlpha = 0.15;
+        this.ctx.strokeStyle = '#7f8c8d';
+        this.ctx.lineWidth = 1.5;
+        
+        // Draw lines for each active particle to show the actual connections being used
         this.particles.forEach(p => {
-            const x = p.x + (p.targetX - p.x) * p.progress;
-            const y = p.y + (p.targetY - p.y) * p.progress;
+            if (p.progress < 0.95) { // Only show line while particle is traveling
+                this.ctx.beginPath();
+                this.ctx.moveTo(p.x, p.y);
+                this.ctx.lineTo(p.targetX, p.targetY);
+                this.ctx.stroke();
+            }
+        });
+        
+        this.ctx.globalAlpha = 1;
+        
+        // Draw feature maps with smooth shading
+        this.featureMaps.forEach((maps, layerIdx) => {
+            maps.forEach(map => {
+                // Fill with activation-based opacity
+                this.ctx.fillStyle = map.color;
+                this.ctx.globalAlpha = 0.15 + map.activation * 0.7;
+                this.ctx.fillRect(map.x, map.y, map.width, map.height);
+                
+                // Draw border
+                this.ctx.globalAlpha = 0.4 + map.activation * 0.6;
+                this.ctx.strokeStyle = map.color;
+                this.ctx.lineWidth = 2;
+                this.ctx.strokeRect(map.x, map.y, map.width, map.height);
+                
+                // Add inner glow when active
+                if (map.activation > 0.3) {
+                    this.ctx.globalAlpha = map.activation * 0.3;
+                    this.ctx.strokeStyle = '#ffffff';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.strokeRect(map.x + 2, map.y + 2, map.width - 4, map.height - 4);
+                }
+            });
+        });
+        
+        this.ctx.globalAlpha = 1;
+        
+        // Draw particles with trail effect
+        this.particles.forEach(p => {
+            const x = p.x + (p.targetX - p.x) * this.easeInOutCubic(p.progress);
+            const y = p.y + (p.targetY - p.y) * this.easeInOutCubic(p.progress);
             
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
-            gradient.addColorStop(0, `rgba(52, 152, 219, ${p.life})`);
+            // Particle glow
+            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 8);
+            gradient.addColorStop(0, `rgba(255, 255, 255, ${p.life * 0.9})`);
+            gradient.addColorStop(0.3, `rgba(52, 152, 219, ${p.life * 0.7})`);
             gradient.addColorStop(1, `rgba(52, 152, 219, 0)`);
             
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, 6, 0, Math.PI * 2);
+            this.ctx.arc(x, y, 8, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Core particle
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${p.life})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 3, 0, Math.PI * 2);
             this.ctx.fill();
         });
-        
-        this.featureMaps.forEach(maps => {
-            maps.forEach(map => {
-                this.ctx.fillStyle = map.color;
-                this.ctx.globalAlpha = 0.2 + map.activation * 0.6;
-                this.ctx.fillRect(map.x, map.y, map.width, map.height);
-                
-                this.ctx.globalAlpha = 1;
-                this.ctx.strokeStyle = map.color;
-                this.ctx.lineWidth = 2;
-                this.ctx.strokeRect(map.x, map.y, map.width, map.height);
-            });
-        });
+    }
+    
+    easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
     }
 }
 
@@ -2270,15 +2539,22 @@ function initCNNEncoderDecoder() {
     cnnViz.draw();
 }
 
-function animateCNN() {
+let cnnLastFrameTime = 0;
+const CNN_BASE_FRAME_DELAY = 1000 / 60; // Target 60fps for smooth animation
+
+function animateCNN(currentTime = 0) {
     if (!state.cnnEncoderDecoder.running || state.currentDemo !== 'cnn-encoder-decoder') return;
     
-    cnnViz.update();
-    cnnViz.draw();
+    // Calculate time-based throttling for speed control
+    const targetDelay = CNN_BASE_FRAME_DELAY * (10 / state.cnnEncoderDecoder.speed);
     
-    setTimeout(() => {
-        requestAnimationFrame(animateCNN);
-    }, 100);
+    if (currentTime - cnnLastFrameTime >= targetDelay) {
+        cnnViz.update();
+        cnnViz.draw();
+        cnnLastFrameTime = currentTime;
+    }
+    
+    requestAnimationFrame(animateCNN);
 }
 
 // ====== Mamba2 Visualization ======
@@ -2292,6 +2568,8 @@ class Mamba2Visualizer {
         this.layers = [];
         this.stateHistory = [];
         this.particles = [];
+        this.currentLayer = 0;
+        this.dataFlowTimer = 0;
         this.resize();
         this.setupLayers();
     }
@@ -2308,6 +2586,8 @@ class Mamba2Visualizer {
         const layerSizes = [6, 8, 4, 8, 6];
         this.layers = [];
         
+        // Responsive node radius
+        const nodeRadius = Math.max(8, Math.min(13, w / 55));
         const spacing = w / (layerSizes.length + 1);
         
         layerSizes.forEach((size, layerIdx) => {
@@ -2319,7 +2599,7 @@ class Mamba2Visualizer {
                 layer.push({
                     x: x,
                     y: nodeSpacing * (i + 1),
-                    radius: 13,
+                    radius: nodeRadius,
                     activation: 0,
                     color: layerIdx === 0 ? '#6C5CE7' : 
                            layerIdx === 2 ? '#FD79A8' :
@@ -2331,30 +2611,55 @@ class Mamba2Visualizer {
     }
     
     update() {
+        // Smooth decay for all nodes
         this.layers.forEach(layer => {
             layer.forEach(node => {
-                node.activation = 0.3 + Math.random() * 0.7;
+                node.activation *= 0.92;
             });
         });
         
-        if (Math.random() < 0.4) {
-            const sourceLayer = Math.floor(Math.random() * (this.layers.length - 1));
-            const sourceNode = this.layers[sourceLayer][Math.floor(Math.random() * this.layers[sourceLayer].length)];
-            const targetNode = this.layers[sourceLayer + 1][Math.floor(Math.random() * this.layers[sourceLayer + 1].length)];
-            
-            this.particles.push({
-                x: sourceNode.x,
-                y: sourceNode.y,
-                targetX: targetNode.x,
-                targetY: targetNode.y,
-                progress: 0,
-                life: 1
-            });
+        // Linear layer-by-layer flow
+        this.dataFlowTimer++;
+        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 15 === 0) {
+            if (this.currentLayer < this.layers.length - 1) {
+                const sourceLayer = this.layers[this.currentLayer];
+                const targetLayer = this.layers[this.currentLayer + 1];
+                
+                sourceLayer.forEach(sourceNode => {
+                    if (this.currentLayer === 0 || sourceNode.activation > 0.3) {
+                        sourceNode.activation = 0.9;
+                        const targetNode = targetLayer[Math.floor(Math.random() * targetLayer.length)];
+                        
+                        this.particles.push({
+                            x: sourceNode.x,
+                            y: sourceNode.y,
+                            targetX: targetNode.x,
+                            targetY: targetNode.y,
+                            progress: 0,
+                            life: 1,
+                            targetNode: targetNode
+                        });
+                    }
+                });
+                
+                this.currentLayer++;
+                if (this.currentLayer >= this.layers.length - 1) {
+                    this.currentLayer = 0;
+                }
+            }
         }
         
+        // Update particles with smooth easing
         this.particles = this.particles.filter(p => {
-            p.progress += 0.06;
+            p.progress += 0.08;
             p.life -= 0.02;
+            
+            // Activate target when particle arrives
+            if (p.progress >= 0.9 && p.targetNode) {
+                p.targetNode.activation = 0.9;
+                p.targetNode = null;
+            }
+            
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -2362,6 +2667,10 @@ class Mamba2Visualizer {
     draw() {
         this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Smooth easing function
+        const easeInOutCubic = (t) => t < 0.5 ? 4 * t * t * t : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
+        
+        // Draw connections with subtle lines
         for (let i = 0; i < this.layers.length - 1; i++) {
             this.layers[i].forEach(node1 => {
                 this.layers[i + 1].forEach(node2 => {
@@ -2375,9 +2684,11 @@ class Mamba2Visualizer {
             });
         }
         
+        // Draw particles with smooth easing
         this.particles.forEach(p => {
-            const x = p.x + (p.targetX - p.x) * p.progress;
-            const y = p.y + (p.targetY - p.y) * p.progress;
+            const eased = easeInOutCubic(p.progress);
+            const x = p.x + (p.targetX - p.x) * eased;
+            const y = p.y + (p.targetY - p.y) * eased;
             
             const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
             gradient.addColorStop(0, `rgba(253, 203, 110, ${p.life})`);
@@ -2389,8 +2700,20 @@ class Mamba2Visualizer {
             this.ctx.fill();
         });
         
+        // Draw nodes with glow effect
         this.layers.forEach(layer => {
             layer.forEach(node => {
+                // Inner glow for active nodes
+                if (node.activation > 0.3) {
+                    const glowGradient = this.ctx.createRadialGradient(node.x, node.y, 0, node.x, node.y, node.radius * 1.5);
+                    glowGradient.addColorStop(0, `${node.color}80`);
+                    glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    this.ctx.fillStyle = glowGradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(node.x, node.y, node.radius * 1.5, 0, Math.PI * 2);
+                    this.ctx.fill();
+                }
+                
                 this.ctx.fillStyle = node.color;
                 this.ctx.globalAlpha = 0.2 + node.activation * 0.8;
                 this.ctx.beginPath();
@@ -2452,7 +2775,7 @@ function animateMamba2() {
     
     setTimeout(() => {
         requestAnimationFrame(animateMamba2);
-    }, 100);
+    }, 1000 / state.mamba2.speed);
 }
 
 // ====== CUDA Visualization ======
@@ -2646,5 +2969,5 @@ function animateCUDA() {
     
     setTimeout(() => {
         requestAnimationFrame(animateCUDA);
-    }, 100);
+    }, 1000 / state.cuda.speed);
 }
