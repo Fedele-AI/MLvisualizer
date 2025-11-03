@@ -1,6 +1,6 @@
-# 🧠 ML Visualizer
+# ML Visualizer
 
-Interactive demonstrations of AI and machine learning architectures.
+A collection of interactive demonstrations of AI and machine learning architectures.
 
 ## 🎮 Usage
 

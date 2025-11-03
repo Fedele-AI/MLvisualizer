@@ -27,8 +27,8 @@
             position: fixed;
             top: 20px;
             left: 20px;
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.95);
             border: none;
@@ -43,7 +43,9 @@
             z-index: 1000;
             line-height: 1;
             padding: 0;
+            margin: 0;
             text-decoration: none;
+            vertical-align: baseline;
         }
 
         .back-button:hover {
@@ -57,8 +59,8 @@
             position: fixed;
             top: 20px;
             right: 20px;
-            width: 48px;
-            height: 48px;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
             background: rgba(255, 255, 255, 0.95);
             border: none;
@@ -73,12 +75,33 @@
             z-index: 1000;
             line-height: 1;
             padding: 0;
+            margin: 0;
+            vertical-align: baseline;
         }
 
         .info-button:hover {
             transform: scale(1.1);
             box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
             background: #f0f0f0;
+        }
+
+        /* Mobile Responsiveness */
+        @media (max-width: 768px) {
+            .back-button,
+            .info-button {
+                width: 44px;
+                height: 44px;
+                font-size: 20px;
+                top: 15px;
+            }
+
+            .back-button {
+                left: 15px;
+            }
+
+            .info-button {
+                right: 15px;
+            }
         }
 
         /* Info Popup */
@@ -102,42 +125,47 @@
 
         .info-popup-content {
             background: white;
-            border-radius: 16px;
-            padding: 32px;
+            border-radius: 20px;
+            padding: 40px;
             max-width: 500px;
             width: 90%;
-            max-height: 80vh;
+            max-height: 85vh;
             overflow-y: auto;
             box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
             position: relative;
+            animation: slideIn 0.3s ease;
         }
 
         .info-popup-close {
             position: absolute;
-            top: 16px;
-            right: 16px;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            background: #D30000;
+            top: 10px;
+            right: 15px;
+            width: 40px;
+            height: 40px;
+            background: none;
             border: none;
+            font-size: 36px;
+            color: #999;
             cursor: pointer;
-            font-size: 24px;
+            transition: color 0.2s ease;
+            line-height: 40px;
+            padding: 0;
+            margin: 0;
+            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: center;
-            color: #4a5568;
-            transition: all 0.3s ease;
+            text-align: center;
         }
 
         .info-popup-close:hover {
-            background: #e2e8f0;
+            color: #333;
         }
 
         .info-popup-content h2 {
-            color: #2d3748;
+            color: #667eea;
+            font-size: 2em;
             margin-bottom: 20px;
-            font-size: 1.8em;
         }
 
         .info-popup-content h3 {
@@ -818,6 +846,174 @@
 
         .explanation-text li {
             margin-bottom: 8px;
+        }
+
+        /* Additional Mobile Responsiveness */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .container {
+                padding: 24px;
+                border-radius: 16px;
+                max-width: 100%;
+            }
+
+            h1 {
+                font-size: 1.8em;
+                margin-bottom: 8px;
+            }
+
+            .subtitle {
+                font-size: 0.95em;
+                margin-bottom: 24px;
+            }
+
+            .control-group {
+                margin-bottom: 24px;
+            }
+
+            label {
+                font-size: 0.85em;
+                margin-bottom: 10px;
+            }
+
+            .instrument-selector {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 10px;
+            }
+
+            .instrument-btn {
+                padding: 10px 12px;
+                font-size: 0.85em;
+            }
+
+            .tempo-value {
+                font-size: 1em;
+                min-width: 60px;
+            }
+
+            button {
+                padding: 14px 28px;
+                font-size: 1em;
+                margin: 24px 0;
+            }
+
+            .visualizer {
+                height: 200px;
+                margin: 24px 0;
+            }
+
+            .visualization-info {
+                font-size: 0.65em;
+                padding: 8px 12px;
+                top: 8px;
+                right: 8px;
+            }
+
+            .visualization-label {
+                font-size: 0.75em;
+                top: 8px;
+                left: 12px;
+            }
+
+            .transformer-stats {
+                padding: 16px;
+                margin-top: 24px;
+            }
+
+            .stat-row {
+                font-size: 0.85em;
+            }
+
+            .playback-controls {
+                margin-top: 24px;
+            }
+
+            .time-display {
+                font-size: 0.85em;
+            }
+
+            .scrubber-bar {
+                height: 6px;
+            }
+
+            .scrubber-handle {
+                width: 18px;
+                height: 18px;
+            }
+
+            .info-popup-content {
+                padding: 30px 20px;
+                width: 95%;
+                max-height: 90vh;
+            }
+
+            .info-popup-content h2 {
+                font-size: 1.5em;
+            }
+
+            .info-popup-content h3 {
+                font-size: 1em;
+            }
+
+            .info-popup-content p {
+                font-size: 0.9em;
+            }
+
+            .tooltip {
+                width: 280px;
+                font-size: 0.75em;
+                padding: 10px 12px;
+            }
+
+            .help-icon {
+                width: 16px;
+                height: 16px;
+                font-size: 11px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 16px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .subtitle {
+                font-size: 0.9em;
+            }
+
+            .instrument-selector {
+                grid-template-columns: 1fr;
+            }
+
+            .tempo-control {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .tempo-value {
+                text-align: center;
+                margin-top: 8px;
+            }
+
+            .visualizer {
+                height: 150px;
+            }
+
+            .visualization-info {
+                display: none; /* Hide on very small screens to save space */
+            }
+
+            .tooltip {
+                width: 220px;
+                font-size: 0.7em;
+            }
         }
     </style>
 </head>

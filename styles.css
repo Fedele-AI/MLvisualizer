@@ -38,11 +38,12 @@ body:has(.demo-view.active) {
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: white;
+    background: rgba(255, 255, 255, 0.95);
     border: 3px solid #667eea;
     font-size: 24px;
     cursor: pointer;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
     z-index: 1000;
     transition: all 0.3s ease;
     display: flex;
@@ -53,7 +54,7 @@ body:has(.demo-view.active) {
 .info-button:hover {
     transform: scale(1.1);
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-    background: #f0f0ff;
+    background: rgba(240, 240, 255, 0.95);
 }
 
 @media (max-width: 768px) {
@@ -77,6 +78,7 @@ body:has(.demo-view.active) {
     z-index: 1001;
     justify-content: center;
     align-items: center;
+    backdrop-filter: blur(4px);
     animation: fadeIn 0.3s ease;
 }
 
