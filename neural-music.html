@@ -1,0 +1,2024 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Music Generator</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Back Button */
+        .back-button {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4a5568;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            line-height: 1;
+            padding: 0;
+            text-decoration: none;
+        }
+
+        .back-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            background: #f0f0f0;
+        }
+
+        /* Info Button */
+        .info-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.95);
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4a5568;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            transition: all 0.3s ease;
+            z-index: 1000;
+            line-height: 1;
+            padding: 0;
+        }
+
+        .info-button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+            background: #f0f0f0;
+        }
+
+        /* Info Popup */
+        .info-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .info-popup.active {
+            display: flex;
+        }
+
+        .info-popup-content {
+            background: white;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .info-popup-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #D30000;
+            border: none;
+            cursor: pointer;
+            font-size: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #4a5568;
+            transition: all 0.3s ease;
+        }
+
+        .info-popup-close:hover {
+            background: #e2e8f0;
+        }
+
+        .info-popup-content h2 {
+            color: #2d3748;
+            margin-bottom: 20px;
+            font-size: 1.8em;
+        }
+
+        .info-popup-content h3 {
+            color: #4a5568;
+            margin-top: 20px;
+            margin-bottom: 10px;
+            font-size: 1.1em;
+        }
+
+        .info-popup-content p {
+            color: #718096;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+
+        .info-section {
+            margin-bottom: 16px;
+        }
+
+        .info-popup-content a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        .info-popup-content a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            color: #718096;
+            font-size: 0.9em;
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 2px solid rgba(0, 0, 0, 0.1);
+        }
+
+        footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            transition: color 0.3s ease;
+        }
+
+        footer a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 24px;
+            padding: 48px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 2.5em;
+            margin-bottom: 12px;
+            text-align: center;
+            font-weight: 700;
+        }
+
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 1.1em;
+        }
+
+        .control-group {
+            margin-bottom: 32px;
+        }
+
+        label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 12px;
+            font-size: 0.95em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .instrument-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .instrument-btn {
+            padding: 12px 16px;
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            color: #4a5568;
+            text-align: center;
+            font-size: 0.9em;
+        }
+
+        .instrument-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .instrument-btn.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+        }
+
+        .tempo-control {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 3px solid #667eea;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            border: 3px solid #667eea;
+        }
+
+        .tempo-value {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: #667eea;
+            min-width: 80px;
+            text-align: right;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checkbox-group label {
+            margin: 0;
+            text-transform: none;
+            letter-spacing: normal;
+            font-size: 1em;
+            cursor: pointer;
+            color: #4a5568;
+            font-weight: 500;
+        }
+
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 6px;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .help-icon:hover {
+            transform: scale(1.1);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+        }
+
+        .tooltip {
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-8px);
+            background: rgba(45, 55, 72, 0.98);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.82em;
+            white-space: normal;
+            width: 360px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            pointer-events: none;
+            line-height: 1.5;
+            font-weight: 400;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 6px solid transparent;
+            border-top-color: rgba(45, 55, 72, 0.98);
+        }
+
+        .help-icon:hover .tooltip,
+        .help-icon:focus .tooltip {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) translateY(-12px);
+        }
+
+        .tooltip strong {
+            color: #a78bfa;
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        button {
+            width: 100%;
+            padding: 18px 36px;
+            font-size: 1.2em;
+            font-weight: 700;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin: 32px 0;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .visualizer {
+            height: 300px;
+            background: #0a0e27;
+            border-radius: 12px;
+            margin: 32px 0;
+            padding: 0;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #667eea;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.3);
+        }
+
+        #neural-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .visualization-info {
+            position: absolute;
+            top: 12px;
+            right: 16px;
+            background: rgba(10, 14, 39, 0.85);
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.75em;
+            color: rgba(255, 255, 255, 0.9);
+            font-family: 'Courier New', monospace;
+            line-height: 1.6;
+            pointer-events: none;
+            z-index: 10;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 4px;
+        }
+
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-label {
+            color: rgba(167, 139, 250, 0.9);
+            font-weight: 600;
+        }
+
+        .info-value {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 500;
+        }
+
+        .visualization-label {
+            position: absolute;
+            top: 12px;
+            left: 16px;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.85em;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            pointer-events: none;
+            z-index: 10;
+        }
+
+        .transformer-stats {
+            background: rgba(10, 14, 39, 0.85);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 32px 0;
+            border: 2px solid rgba(102, 126, 234, 0.3);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .stats-title {
+            color: rgba(167, 139, 250, 0.95);
+            font-size: 0.9em;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 16px;
+            text-align: center;
+            border-bottom: 1px solid rgba(102, 126, 234, 0.3);
+            padding-bottom: 8px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            font-size: 0.85em;
+        }
+
+        .stat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 6px;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .stat-label {
+            color: rgba(167, 139, 250, 0.9);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .stat-value {
+            color: rgba(255, 255, 255, 0.95);
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .time-scrubber {
+            margin-top: 24px;
+            display: none;
+            background: rgba(255, 255, 255, 0.5);
+            padding: 24px;
+            border-radius: 12px;
+            border: 2px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .time-scrubber.visible {
+            display: block;
+        }
+
+        .player-controls {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .play-pause-btn {
+            width: 56px;
+            height: 56px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            flex-shrink: 0;
+            position: relative;
+            margin: 0;
+            padding: 0;
+        }
+
+        .play-pause-btn::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 8px;
+            padding: 2px;
+            background: linear-gradient(135deg, rgba(255,255,255,0.3), rgba(255,255,255,0));
+            -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            -webkit-mask-composite: xor;
+            mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+            mask-composite: exclude;
+            pointer-events: none;
+        }
+
+        .play-pause-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .play-pause-btn:active {
+            transform: translateY(0);
+        }
+
+        .play-pause-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        #play-pause-icon {
+            font-size: 24px;
+            color: white;
+            line-height: 1;
+            display: block;
+            filter: drop-shadow(0 1px 2px rgba(0,0,0,0.3));
+        }
+
+        .time-info {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .export-btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(72, 187, 120, 0.3);
+            white-space: nowrap;
+            margin: 0;
+            height: 56px;
+        }
+
+        .export-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.5);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
+        .export-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .time-info {
+            flex: 1;
+            min-width: 120px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .scrubber-track {
+            position: relative;
+            height: 8px;
+            background: rgba(102, 126, 234, 0.15);
+            border-radius: 4px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            overflow: visible;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+
+        .scrubber-progress {
+            position: absolute;
+            height: 100%;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.1s linear;
+        }
+
+        .scrubber-handle {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 50%;
+            top: 50%;
+            left: 0%;
+            transform: translate(-50%, -50%);
+            cursor: grab;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+            z-index: 10;
+        }
+
+        .scrubber-handle:hover {
+            transform: translate(-50%, -50%) scale(1.3);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.6);
+        }
+
+        .scrubber-handle:active {
+            cursor: grabbing;
+            transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        .scrubber-time {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.95em;
+            font-weight: 600;
+            min-width: 140px;
+            background: rgba(255, 255, 255, 0.8);
+            padding: 10px 20px;
+            border-radius: 8px;
+            border: 1px solid rgba(102, 126, 234, 0.3);
+            white-space: nowrap;
+        }
+
+        .time-display {
+            color: #2d3748;
+            font-family: 'Courier New', monospace;
+            font-size: 1.1em;
+            font-weight: 700;
+        }
+
+        .time-separator {
+            color: #718096;
+            margin: 0 8px;
+            font-weight: 600;
+        }
+
+        .status {
+            text-align: center;
+            color: #718096;
+            font-size: 0.95em;
+            margin-top: 20px;
+            min-height: 24px;
+            font-weight: 500;
+        }
+
+        .status.generating {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .generating {
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        .explanation-section {
+            margin-top: 48px;
+            padding-top: 32px;
+            border-top: 2px solid #e2e8f0;
+        }
+
+        .explanation-section h2 {
+            color: #2d3748;
+            font-size: 1.8em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .diagram {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin: 24px 0;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .diagram img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .explanation-text {
+            color: #4a5568;
+            line-height: 1.8;
+            font-size: 1em;
+        }
+
+        .explanation-text h3 {
+            color: #2d3748;
+            font-size: 1.3em;
+            margin: 24px 0 12px 0;
+        }
+
+        .explanation-text p {
+            margin-bottom: 16px;
+        }
+
+        .explanation-text strong {
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .explanation-text ul {
+            margin-left: 24px;
+            margin-bottom: 16px;
+        }
+
+        .explanation-text li {
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Back Button -->
+    <a href="index.html" class="back-button" title="Back to home">🔙</a>
+    
+    <!-- Info Button -->
+    <button class="info-button" id="info-button" title="About this project">ℹ️</button>
+    
+    <!-- Info Popup -->
+    <div class="info-popup" id="info-popup">
+        <div class="info-popup-content">
+            <button class="info-popup-close" id="info-popup-close">&times;</button>
+            <h2>About</h2>
+            <p>This tool was created for CEE 4803 (Art & Generative AI) at the Georgia Institute of Technology.</p>
+            <p>It pairs with our Libre textbook, <a href="https://github.com/Fedele-AI/AI_Fundamentals" target="_blank" rel="noopener noreferrer">AI Fundamentals</a>.</p>
+            <div class="info-section">
+                <h3>Main Developer:</h3>
+                <p><a href="https://alexj.io" target="_blank" rel="noopener noreferrer">Kenneth (Alex) Jenkins</a></p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Overseeing Professor:</h3>
+                <p><a href="https://scholar.google.com/citations?user=iaHIkTAAAAAJ" target="_blank" rel="noopener noreferrer">Dr. Francesco Fedele</a></p>
+            </div>
+
+            <div class="info-section">
+                <h3>Source Code:</h3>
+                <p><a href="https://github.com/Fedele-AI/MLvisualizer" target="_blank" rel="noopener noreferrer">ML Visualizer (GPLv3)</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <h1>🎵 Neural Music</h1>
+        <p class="subtitle">AI-Generated Music in Your Browser</p>
+
+        <div class="control-group">
+            <label>Instrument Sound</label>
+            <div class="instrument-selector">
+                <button class="instrument-btn active" data-instrument="0">🤖 Robo</button>
+                <button class="instrument-btn" data-instrument="1">🕺 80s</button>
+                <button class="instrument-btn" data-instrument="2">📞 Old Nokia</button>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label for="tempo">Tempo</label>
+            <div class="tempo-control">
+                <input type="range" id="tempo" min="60" max="240" value="120" step="10">
+                <span class="tempo-value"><span id="tempo-display">120</span> BPM</span>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="random-spacing-mode" checked>
+                <label for="random-spacing-mode">Randomness</label>
+                <span class="help-icon" tabindex="0">
+                    ?
+                    <div class="tooltip">
+                        <strong>Random Spacing - Code Implementation</strong><br>
+                        Controls whether the transformer inserts random silence (rests) between musical phrases.<br>
+                        <strong>🎵 ON (Default):</strong> Adds 1-2 rest notes every 4-8 notes (60% probability), creating natural-sounding phrases with breathing room<br>
+                        <strong>🎹 OFF:</strong> Continuous stream of notes with no gaps - one long uninterrupted melody<br>
+                        When enabled, rests are inserted as special REST_NOTE values (999) that generate silence in the audio output.
+                    </div>
+                </span>
+            </div>
+            <div class="checkbox-group">
+                <input type="checkbox" id="melodic-mode">
+                <label for="melodic-mode">Melodic</label>
+                <span class="help-icon" tabindex="0">
+                    ?
+                    <div class="tooltip">
+                        <strong>Melodic Mode - Code Implementation</strong><br>
+                        Controls the transformer's consonance weights applied to interval distances when predicting the next note.<br>
+                        <strong>🎹 Harmonic (OFF):</strong> Favors octaves (95%), fourths (95%), unison (100%), thirds (90%)<br>
+                        <strong>🎵 Melodic (ON):</strong> Strongly prefers steps 1-2 notes apart (100%), penalizes large leaps (30%), reduces unison to 80% to avoid repetition<br>
+                        These weights multiply with attention scores to create the probability distribution for note selection. Higher weight = higher chance of being chosen.
+                    </div>
+                </span>
+            </div>
+        </div>
+
+        <div class="control-group">
+            <label>Advanced Settings</label>
+            <div class="tempo-control">
+                <input type="range" id="sample-rate" min="22050" max="48000" step="100" value="44100">
+                <span class="tempo-value"><span id="sample-rate-display">44100</span> Hz</span>
+            </div>
+            <div class="tempo-control" style="margin-top: 12px;">
+                <input type="range" id="target-duration" min="5" max="30" step="1" value="12">
+                <span class="tempo-value"><span id="target-duration-display">12</span>s</span>
+            </div>
+        </div>
+
+        <div class="visualizer" id="visualizer">
+            <canvas id="neural-canvas"></canvas>
+            <div class="visualization-label">Neural Transformer</div>
+            <div class="visualization-info" id="viz-info">
+                <div class="info-row">
+                    <span class="info-label">Layers:</span>
+                    <span class="info-value" id="info-layers">4</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Neurons:</span>
+                    <span class="info-value" id="info-neurons">56</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Attention:</span>
+                    <span class="info-value" id="info-attention">Multi-Head</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Sequence:</span>
+                    <span class="info-value" id="info-sequence">0/96</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Active:</span>
+                    <span class="info-value" id="info-active">0</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="transformer-stats">
+            <div class="stats-title">Transformer Parameters</div>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <span class="stat-label">Tempo (BPM):</span>
+                    <span class="stat-value" id="stat-tempo">120</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Instrument:</span>
+                    <span class="stat-value" id="stat-instrument">Robo</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Mode:</span>
+                    <span class="stat-value" id="stat-mode">Harmonic</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sample Rate:</span>
+                    <span class="stat-value" id="stat-sample-rate">44100 Hz</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Sequence Length:</span>
+                    <span class="stat-value" id="stat-seq-length">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Duration:</span>
+                    <span class="stat-value" id="stat-duration">0.0s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Note Duration:</span>
+                    <span class="stat-value" id="stat-note-duration">0.0s</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Total Samples:</span>
+                    <span class="stat-value" id="stat-total-samples">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Notes (Scale):</span>
+                    <span class="stat-value" id="stat-num-notes">8</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Target Duration:</span>
+                    <span class="stat-value" id="stat-target-duration">12.0s</span>
+                </div>
+            </div>
+        </div>
+
+        <button id="generate-btn">Generate Music</button>
+        
+        <div class="time-scrubber" id="time-scrubber">
+            <div class="scrubber-track" id="scrubber-track">
+                <div class="scrubber-progress" id="scrubber-progress"></div>
+                <div class="scrubber-handle" id="scrubber-handle"></div>
+            </div>
+            <div class="player-controls">
+                <button class="play-pause-btn" id="play-pause-btn" disabled>
+                    <span id="play-pause-icon">▶</span>
+                </button>
+                <div class="time-info">
+                    <div class="scrubber-time">
+                        <span class="time-display" id="current-time">0:00</span>
+                        <span class="time-separator">/</span>
+                        <span class="time-display" id="total-time">0:12</span>
+                    </div>
+                </div>
+                <button class="export-btn" id="export-btn">💾 Download WAV</button>
+            </div>
+        </div>
+        
+        <div class="status" id="status">Ready to generate music</div>
+
+        <div class="explanation-section">
+            <h2>🧠 How Does This Work?</h2>
+            
+            <div class="diagram">
+                <svg viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Background -->
+                    <rect width="800" height="400" fill="#f7fafc"/>
+                    
+                    <!-- Title -->
+                    <text x="400" y="30" font-size="20" font-weight="bold" text-anchor="middle" fill="#2d3748">Transformer Architecture for Music Generation</text>
+                    
+                    <!-- Input Layer -->
+                    <rect x="50" y="80" width="100" height="260" rx="8" fill="#e6f2ff" stroke="#667eea" stroke-width="2"/>
+                    <text x="100" y="125" font-size="14" font-weight="bold" text-anchor="middle" fill="#2d3748">Input</text>
+                    <text x="100" y="145" font-size="11" text-anchor="middle" fill="#4a5568">8 Notes</text>
+                    <circle cx="100" cy="150" r="6" fill="#667eea"/>
+                    <circle cx="100" cy="180" r="6" fill="#667eea"/>
+                    <circle cx="100" cy="210" r="6" fill="#667eea"/>
+                    <circle cx="100" cy="240" r="6" fill="#667eea"/>
+                    <circle cx="100" cy="270" r="6" fill="#667eea"/>
+                    <text x="100" y="305" font-size="10" text-anchor="middle" fill="#718096">Previous notes</text>
+                    
+                    <!-- Attention Layer 1 -->
+                    <rect x="230" y="60" width="120" height="280" rx="8" fill="#f0e6ff" stroke="#764ba2" stroke-width="2"/>
+                    <text x="290" y="105" font-size="14" font-weight="bold" text-anchor="middle" fill="#2d3748">Attention 1</text>
+                    <text x="290" y="125" font-size="11" text-anchor="middle" fill="#4a5568">16 Neurons</text>
+                    
+                    <!-- Attention connections visualization -->
+                    <g opacity="0.6">
+                        <line x1="150" y1="150" x2="230" y2="130" stroke="#667eea" stroke-width="1.5"/>
+                        <line x1="150" y1="180" x2="230" y2="160" stroke="#667eea" stroke-width="1.5"/>
+                        <line x1="150" y1="210" x2="230" y2="190" stroke="#667eea" stroke-width="1.5"/>
+                        <line x1="150" y1="240" x2="230" y2="220" stroke="#667eea" stroke-width="1.5"/>
+                    </g>
+                    
+                    <circle cx="290" cy="130" r="7" fill="#8b5cf6"/>
+                    <circle cx="290" cy="160" r="7" fill="#8b5cf6"/>
+                    <circle cx="290" cy="190" r="7" fill="#8b5cf6"/>
+                    <circle cx="290" cy="220" r="7" fill="#8b5cf6"/>
+                    <circle cx="290" cy="250" r="7" fill="#8b5cf6"/>
+                    <text x="290" y="285" font-size="9" text-anchor="middle" fill="#718096">Weighted</text>
+                    <text x="290" y="298" font-size="9" text-anchor="middle" fill="#718096">relationships</text>
+                    
+                    <!-- Attention Layer 2 -->
+                    <rect x="430" y="60" width="120" height="280" rx="8" fill="#f0e6ff" stroke="#764ba2" stroke-width="2"/>
+                    <text x="490" y="105" font-size="14" font-weight="bold" text-anchor="middle" fill="#2d3748">Attention 2</text>
+                    <text x="490" y="125" font-size="11" text-anchor="middle" fill="#4a5568">16 Neurons</text>
+                    
+                    <g opacity="0.6">
+                        <line x1="350" y1="130" x2="430" y2="140" stroke="#8b5cf6" stroke-width="1.5"/>
+                        <line x1="350" y1="160" x2="430" y2="170" stroke="#8b5cf6" stroke-width="1.5"/>
+                        <line x1="350" y1="190" x2="430" y2="200" stroke="#8b5cf6" stroke-width="1.5"/>
+                        <line x1="350" y1="220" x2="430" y2="230" stroke="#8b5cf6" stroke-width="1.5"/>
+                    </g>
+                    
+                    <circle cx="490" cy="140" r="7" fill="#8b5cf6"/>
+                    <circle cx="490" cy="170" r="7" fill="#8b5cf6"/>
+                    <circle cx="490" cy="200" r="7" fill="#8b5cf6"/>
+                    <circle cx="490" cy="230" r="7" fill="#8b5cf6"/>
+                    <circle cx="490" cy="260" r="7" fill="#8b5cf6"/>
+                    <text x="490" y="290" font-size="9" text-anchor="middle" fill="#718096">Pattern</text>
+                    <text x="490" y="303" font-size="9" text-anchor="middle" fill="#718096">recognition</text>
+                    
+                    <!-- Output Layer -->
+                    <rect x="630" y="80" width="100" height="260" rx="8" fill="#e6fff0" stroke="#48bb78" stroke-width="2"/>
+                    <text x="680" y="125" font-size="14" font-weight="bold" text-anchor="middle" fill="#2d3748">Output</text>
+                    <text x="680" y="145" font-size="11" text-anchor="middle" fill="#4a5568">8 Notes</text>
+                    
+                    <g opacity="0.6">
+                        <line x1="550" y1="140" x2="630" y2="160" stroke="#8b5cf6" stroke-width="1.5"/>
+                        <line x1="550" y1="170" x2="630" y2="190" stroke="#8b5cf6" stroke-width="1.5"/>
+                        <line x1="550" y1="200" x2="630" y2="220" stroke="#8b5cf6" stroke-width="1.5"/>
+                        <line x1="550" y1="230" x2="630" y2="250" stroke="#8b5cf6" stroke-width="1.5"/>
+                    </g>
+                    
+                    <circle cx="680" cy="160" r="6" fill="#48bb78"/>
+                    <circle cx="680" cy="190" r="6" fill="#48bb78"/>
+                    <circle cx="680" cy="220" r="6" fill="#48bb78"/>
+                    <circle cx="680" cy="250" r="6" fill="#48bb78"/>
+                    <circle cx="680" cy="280" r="6" fill="#48bb78"/>
+                    <text x="680" y="310" font-size="10" text-anchor="middle" fill="#718096">Next note</text>
+                    
+                    <!-- Flow arrows -->
+                    <defs>
+                        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+                            <polygon points="0 0, 10 3.5, 0 7" fill="#667eea"/>
+                        </marker>
+                    </defs>
+                    <line x1="155" y1="360" x2="220" y2="360" stroke="#667eea" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="360" y1="360" x2="420" y2="360" stroke="#667eea" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    <line x1="560" y1="360" x2="620" y2="360" stroke="#667eea" stroke-width="2" marker-end="url(#arrowhead)"/>
+                    
+                    <text x="187" y="385" font-size="11" text-anchor="middle" fill="#4a5568">Analyze</text>
+                    <text x="390" y="385" font-size="11" text-anchor="middle" fill="#4a5568">Learn</text>
+                    <text x="590" y="385" font-size="11" text-anchor="middle" fill="#4a5568">Predict</text>
+                </svg>
+            </div>
+
+            <div class="explanation-text">
+                <h3>What is a Transformer?</h3>
+                <p>
+                    A <strong>transformer</strong> is a type of neural network that's revolutionizing artificial intelligence. 
+                    Think of it as a super-smart pattern recognition system that can understand relationships between pieces of information, 
+                    no matter how far apart they are in a sequence.
+                </p>
+
+                <h3>How Does It Generate Music?</h3>
+                <p>Our music transformer works in simple steps:</p>
+                <ul>
+                    <li><strong>Input Layer:</strong> Takes in the previous musical notes (like C, D, E, etc.)</li>
+                    <li><strong>Attention Layers:</strong> The "brain" of the system - it learns which notes sound good together and which patterns create melody. It pays "attention" to the relationships between notes, like how a catchy chorus relates to the verse.</li>
+                    <li><strong>Output Layer:</strong> Predicts what the next note should be based on everything it's learned</li>
+                </ul>
+
+                <h3>The Same Technology Powers ChatGPT!</h3>
+                <p>
+                    This exact same architecture powers <strong>ChatGPT</strong> and other large language models! Instead of musical notes, 
+                    ChatGPT uses transformers to understand and generate text. The "attention mechanism" helps it understand context - 
+                    for example, knowing that "bank" means something different in "river bank" versus "savings bank."
+                </p>
+
+                <h3>How Are We Making Music With Code?</h3>
+                <p>Here's the magic happening behind the scenes:</p>
+                <ul>
+                    <li><strong>Rust Code:</strong> The transformer runs in highly efficient Rust code, compiled to WebAssembly (WASM) so it runs at near-native speed in your browser</li>
+                    <li><strong>Attention Weights:</strong> Mathematical weights determine how much each previous note influences the next one</li>
+                    <li><strong>Probability Distribution:</strong> Instead of random notes, the AI calculates which notes are most "musical" based on consonance (notes that sound good together)</li>
+                    <li><strong>Audio Synthesis:</strong> The selected notes are converted into actual sound waves using different waveforms for Piano, Guitar, and Robo sounds</li>
+                </ul>
+
+                <h3>The Math Behind Transformers</h3>
+                <p>At the heart of every transformer is the <strong>attention mechanism</strong>, which uses these mathematical operations:</p>
+                <p style="background: #f7fafc; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; margin: 16px 0;">
+                    <strong>Attention(Q, K, V)</strong> = softmax(<sup>QK<sup>T</sup></sup>&frasl;<sub>√d<sub>k</sub></sub>) V
+                </p>
+                <p style="background: #f0e6ff; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; margin: 16px 0; line-height: 2;">
+                    <strong>Breaking down softmax:</strong><br><br>
+                    softmax(z<sub>i</sub>) = <sup>e<sup>z<sub>i</sub></sup></sup>&frasl;<sub>Σ<sub>j=1</sub><sup>n</sup> e<sup>z<sub>j</sub></sup></sub><br><br>
+                    where z = <sup>QK<sup>T</sup></sup>&frasl;<sub>√d<sub>k</sub></sub>
+                </p>
+                <p><strong>What does this mean in plain English?</strong></p>
+                <p>
+                    The softmax function is the "decision maker" that turns raw scores into probabilities. Here's how it works:
+                </p>
+                <ul>
+                    <li><strong>e<sup>z<sub>i</sub></sup></strong> (Euler's number to the power of each score) - Amplifies differences between scores. High scores become much higher, low scores stay low.</li>
+                    <li><strong>Σ (Sigma)</strong> - Sums up all the amplified scores across all positions (j=1 to n)</li>
+                    <li><strong>Division</strong> - Each amplified score is divided by the total, guaranteeing all values sum to exactly 1.0 (a perfect probability distribution)</li>
+                </ul>
+                <p>
+                    <strong>Why is this magical?</strong> Imagine you're at a party and trying to decide who to listen to. Softmax is like your brain 
+                    calculating: "Person A is pretty interesting (score: 0.5), Person B is fascinating (score: 2.0), Person C is boring (score: -0.3)." 
+                    The softmax converts these into percentages: you'll pay 20% attention to A, 70% to B, and 10% to C. 
+                </p>
+                <p>
+                    In music, this means when predicting the next note, the transformer doesn't just pick the "best" note—it creates a probability 
+                    distribution across all possible notes. A note that fits the harmony might get 40% probability, a consonant note gets 30%, 
+                    and dissonant notes get only 5% each. This creates <strong>musically intelligent randomness</strong>—the AI can explore 
+                    creative options while staying mostly in tune!
+                </p>
+                <p><strong>Key matrices explained:</strong></p>
+                <ul>
+                    <li><strong>Q</strong> (Query) = "What am I looking for?" (the current musical context)</li>
+                    <li><strong>K</strong> (Key) = "What do I have available?" (all previous notes in memory)</li>
+                    <li><strong>V</strong> (Value) = "What's the actual musical information?" (the note frequencies and patterns)</li>
+                    <li><strong>d<sub>k</sub></strong> = Dimension of the key vectors (prevents numbers from getting too large)</li>
+                </ul>
+                <p>
+                    This formula calculates how much "attention" each note should pay to every other note in the sequence, 
+                    creating weighted relationships that capture musical patterns!
+                </p>
+
+                <h3>Why Does Everything Sound Piano-Like?</h3>
+                <p>
+                    You might notice all three instruments (Robo, 80s, Old Nokia) produce similar piano-like tones. This is a 
+                    fundamental limitation of running transformers in the browser. Unlike large-scale AI models that can generate 
+                    realistic human voices and complex timbres, our browser-based transformer is constrained by:
+                </p>
+                <ul>
+                    <li><strong>Limited computational power:</strong> Full audio synthesis transformers require massive GPU processing</li>
+                    <li><strong>Simple waveform generation:</strong> We use basic sine waves with harmonics rather than complex audio modeling</li>
+                    <li><strong>Sequence-based prediction:</strong> The transformer predicts note sequences (like MIDI), not raw audio waveforms</li>
+                    <li><strong>Browser constraints:</strong> WebAssembly and Web Audio API have performance limits compared to native audio engines</li>
+                </ul>
+                <p>
+                    Think of it this way: our transformer is like a smart musician playing a basic synthesizer, choosing which notes 
+                    to play intelligently, but limited to simple electronic sounds. Professional AI music models (like OpenAI's Jukebox 
+                    or Google's MusicLM) process millions of audio samples and require powerful servers—far beyond what runs in your browser!
+                </p>
+
+                <p>
+                    Every time you click "Generate Music," the transformer creates a unique 96-note sequence by repeatedly predicting 
+                    the next best note. The result? AI-generated music that sounds pleasant because it's learned the basic rules of harmony 
+                    and melody!
+                </p>
+            </div>
+        </div>
+
+        <footer>
+            <p>Neural Music Generator | Built for CEE 4803 at <a href="https://www.gatech.edu" target="_blank" rel="noopener noreferrer">Georgia Tech</a> | Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer">GPLv3</a></p>
+        </footer>
+    </div>
+
+    <script type="module">
+        import init, { MusicTransformer, InstrumentType } from './pkg/music_transformer.js';
+
+        let transformer = null;
+        let audioContext = null;
+        let isGenerating = false;
+        let currentSource = null;
+        let currentBuffer = null;
+        let startTime = 0;
+        let isPlaying = false;
+        let animationFrame = null;
+        let isDragging = false;
+        let neuralViz = null;
+        let currentInstrument = 0; // 0 = Robo, 1 = Piano, 2 = Guitar
+        let currentSampleRate = 44100;
+        let currentTargetDuration = 12;
+
+        class NeuralNetworkVisualizer {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.setupCanvas();
+                
+                // 4-layer transformer architecture
+                this.layers = [
+                    { neurons: 8, x: 0.15, label: 'Input', color: [102, 126, 234] },
+                    { neurons: 16, x: 0.35, label: 'Attention 1', color: [139, 92, 246] },
+                    { neurons: 16, x: 0.65, label: 'Attention 2', color: [236, 72, 153] },
+                    { neurons: 8, x: 0.85, label: 'Output', color: [59, 130, 246] }
+                ];
+                
+                this.neurons = [];
+                this.connections = [];
+                this.activeConnections = new Set();
+                this.firingNeurons = new Set();
+                this.isGenerating = false;
+                this.currentSequenceIndex = 0;
+                this.particles = [];
+                this.attentionFlows = [];
+                
+                this.initializeNetwork();
+                this.startIdleAnimation();
+            }
+            
+            setupCanvas() {
+                const rect = this.canvas.getBoundingClientRect();
+                const dpr = window.devicePixelRatio || 1;
+                this.canvas.width = rect.width * dpr;
+                this.canvas.height = rect.height * dpr;
+                this.ctx.scale(dpr, dpr);
+                this.width = rect.width;
+                this.height = rect.height;
+            }
+            
+            initializeNetwork() {
+                // Create neurons
+                this.layers.forEach((layer, layerIdx) => {
+                    const spacing = this.height / (layer.neurons + 1);
+                    for (let i = 0; i < layer.neurons; i++) {
+                        this.neurons.push({
+                            x: layer.x * this.width,
+                            y: spacing * (i + 1),
+                            layer: layerIdx,
+                            index: i,
+                            activation: 0,
+                            targetActivation: 0,
+                            pulsePhase: Math.random() * Math.PI * 2,
+                            color: layer.color
+                        });
+                    }
+                });
+                
+                // Create connections between layers
+                for (let l = 0; l < this.layers.length - 1; l++) {
+                    const currentLayer = this.neurons.filter(n => n.layer === l);
+                    const nextLayer = this.neurons.filter(n => n.layer === l + 1);
+                    
+                    currentLayer.forEach(n1 => {
+                        nextLayer.forEach(n2 => {
+                            this.connections.push({
+                                from: n1,
+                                to: n2,
+                                weight: Math.random() * 0.5 + 0.5,
+                                pulse: 0,
+                                targetPulse: 0,
+                                flowProgress: 0
+                            });
+                        });
+                    });
+                }
+            }
+            
+            startIdleAnimation() {
+                const animate = () => {
+                    if (!this.isGenerating) {
+                        this.neurons.forEach((neuron, i) => {
+                            const phase = Date.now() * 0.0015 + i * 0.3;
+                            const wave = Math.sin(phase) * 0.12 + 0.15;
+                            neuron.targetActivation = wave;
+                            neuron.pulsePhase += 0.02;
+                        });
+                        this.updateInfo(0, 0);
+                    }
+                    this.render();
+                    requestAnimationFrame(animate);
+                };
+                animate();
+            }
+            
+            updateInfo(sequenceIndex, activeNeurons, totalLength) {
+                totalLength = totalLength || 96; // Default fallback
+                document.getElementById('info-sequence').textContent = `${sequenceIndex}/${totalLength}`;
+                document.getElementById('info-active').textContent = activeNeurons;
+            }
+            
+            createParticle(x, y, color) {
+                this.particles.push({
+                    x, y,
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    life: 1.0,
+                    color,
+                    size: Math.random() * 3 + 1
+                });
+            }
+            
+            async generateSequence(sequence) {
+                this.isGenerating = true;
+                this.currentSequenceIndex = 0;
+                const totalLength = sequence.length;
+                const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+                
+                // Process each note
+                for (let i = 0; i < sequence.length; i++) {
+                    this.currentSequenceIndex = i + 1;
+                    const note = sequence[i];
+                    
+                    // Fire input neuron with emphasis
+                    const inputLayer = this.neurons.filter(n => n.layer === 0);
+                    const inputNeuron = inputLayer[note % inputLayer.length];
+                    inputNeuron.targetActivation = 1.0;
+                    this.firingNeurons.add(inputNeuron);
+                    
+                    // Create particles at input
+                    for (let p = 0; p < 3; p++) {
+                        this.createParticle(inputNeuron.x, inputNeuron.y, inputNeuron.color);
+                    }
+                    
+                    await delay(20);
+                    
+                    // Propagate through layers with attention mechanism
+                    for (let layer = 0; layer < this.layers.length - 1; layer++) {
+                        const currentNeurons = this.neurons.filter(n => n.layer === layer);
+                        const nextNeurons = this.neurons.filter(n => n.layer === layer + 1);
+                        
+                        // Calculate attention weights
+                        const attentionWeights = new Map();
+                        currentNeurons.forEach(from => {
+                            if (from.activation > 0.2) {
+                                this.connections.forEach(conn => {
+                                    if (conn.from === from && nextNeurons.includes(conn.to)) {
+                                        const attention = Math.random() * 0.6 + 0.4;
+                                        conn.targetPulse = 1.0;
+                                        conn.flowProgress = 0;
+                                        this.activeConnections.add(conn);
+                                        
+                                        // Create attention flow
+                                        this.attentionFlows.push({
+                                            from: conn.from,
+                                            to: conn.to,
+                                            progress: 0,
+                                            speed: 0.08 + Math.random() * 0.04,
+                                            intensity: attention,
+                                            color: from.color
+                                        });
+                                        
+                                        const currentWeight = attentionWeights.get(conn.to) || 0;
+                                        attentionWeights.set(conn.to, currentWeight + attention);
+                                        this.firingNeurons.add(conn.to);
+                                    }
+                                });
+                            }
+                        });
+                        
+                        // Apply attention weights to next layer
+                        attentionWeights.forEach((weight, neuron) => {
+                            neuron.targetActivation = Math.min(1.0, weight);
+                            // Create particles at highly activated neurons
+                            if (weight > 0.7) {
+                                this.createParticle(neuron.x, neuron.y, neuron.color);
+                            }
+                        });
+                        
+                        await delay(35);
+                    }
+                    
+                    this.updateInfo(this.currentSequenceIndex, this.firingNeurons.size, totalLength);
+                    
+                    // Smooth decay
+                    await delay(15);
+                    this.neurons.forEach(n => {
+                        n.targetActivation *= 0.75;
+                        if (n.targetActivation < 0.1) this.firingNeurons.delete(n);
+                    });
+                    
+                    this.connections.forEach(conn => {
+                        conn.targetPulse *= 0.7;
+                        if (conn.targetPulse < 0.1) this.activeConnections.delete(conn);
+                    });
+                }
+                
+                // Final smooth decay
+                await delay(400);
+                this.neurons.forEach(n => n.targetActivation = 0.15);
+                this.firingNeurons.clear();
+                this.activeConnections.clear();
+                this.attentionFlows = [];
+                this.isGenerating = false;
+                this.updateInfo(totalLength, 0, totalLength);
+            }
+            
+            render() {
+                // Dark background with subtle gradient
+                const bgGradient = this.ctx.createLinearGradient(0, 0, this.width, this.height);
+                bgGradient.addColorStop(0, '#0a0e27');
+                bgGradient.addColorStop(0.5, '#0d1135');
+                bgGradient.addColorStop(1, '#0a0e27');
+                this.ctx.fillStyle = bgGradient;
+                this.ctx.fillRect(0, 0, this.width, this.height);
+                
+                // Smooth neuron activation transitions
+                this.neurons.forEach(n => {
+                    n.activation += (n.targetActivation - n.activation) * 0.2;
+                });
+                
+                // Smooth connection pulse transitions
+                this.connections.forEach(conn => {
+                    conn.pulse += (conn.targetPulse - conn.pulse) * 0.25;
+                });
+                
+                // Update and render particles
+                this.particles = this.particles.filter(particle => {
+                    particle.x += particle.vx;
+                    particle.y += particle.vy;
+                    particle.life -= 0.02;
+                    particle.vx *= 0.98;
+                    particle.vy *= 0.98;
+                    
+                    if (particle.life > 0) {
+                        const alpha = particle.life * 0.8;
+                        const gradient = this.ctx.createRadialGradient(
+                            particle.x, particle.y, 0,
+                            particle.x, particle.y, particle.size * 2
+                        );
+                        const [r, g, b] = particle.color;
+                        gradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${alpha})`);
+                        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                        this.ctx.fillStyle = gradient;
+                        this.ctx.beginPath();
+                        this.ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        return true;
+                    }
+                    return false;
+                });
+                
+                // Update and render attention flows
+                this.attentionFlows = this.attentionFlows.filter(flow => {
+                    flow.progress += flow.speed;
+                    
+                    if (flow.progress < 1.0) {
+                        const x = flow.from.x + (flow.to.x - flow.from.x) * flow.progress;
+                        const y = flow.from.y + (flow.to.y - flow.from.y) * flow.progress;
+                        
+                        // Draw flowing particle
+                        const size = 3 + flow.intensity * 2;
+                        const alpha = flow.intensity * (1 - Math.abs(flow.progress - 0.5) * 0.5);
+                        const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, size * 2);
+                        const [r, g, b] = flow.color;
+                        gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+                        gradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${alpha * 0.8})`);
+                        gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, 0)`);
+                        this.ctx.fillStyle = gradient;
+                        this.ctx.beginPath();
+                        this.ctx.arc(x, y, size, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        return true;
+                    }
+                    return false;
+                });
+                
+                // Draw connections with improved styling
+                this.connections.forEach(conn => {
+                    if (conn.pulse < 0.02) return;
+                    
+                    const alpha = conn.pulse * 0.5 + 0.03;
+                    const gradient = this.ctx.createLinearGradient(
+                        conn.from.x, conn.from.y, conn.to.x, conn.to.y
+                    );
+                    
+                    if (conn.pulse > 0.15) {
+                        const [r1, g1, b1] = conn.from.color;
+                        const [r2, g2, b2] = conn.to.color;
+                        gradient.addColorStop(0, `rgba(${r1}, ${g1}, ${b1}, ${alpha})`);
+                        gradient.addColorStop(0.5, `rgba(167, 139, 250, ${alpha * 1.5})`);
+                        gradient.addColorStop(1, `rgba(${r2}, ${g2}, ${b2}, ${alpha})`);
+                        this.ctx.strokeStyle = gradient;
+                        this.ctx.lineWidth = 0.8 + conn.pulse * 2.5;
+                        
+                        // Add glow for strong connections
+                        this.ctx.shadowBlur = 8 * conn.pulse;
+                        this.ctx.shadowColor = `rgba(167, 139, 250, ${conn.pulse * 0.5})`;
+                    } else {
+                        const [r, g, b] = conn.from.color;
+                        this.ctx.strokeStyle = `rgba(${r}, ${g}, ${b}, ${alpha * 0.5})`;
+                        this.ctx.lineWidth = 0.5;
+                        this.ctx.shadowBlur = 0;
+                    }
+                    
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(conn.from.x, conn.from.y);
+                    
+                    // Add slight curve to connections for visual interest
+                    const midX = (conn.from.x + conn.to.x) / 2;
+                    const midY = (conn.from.y + conn.to.y) / 2;
+                    const offset = (Math.random() - 0.5) * 10 * conn.pulse;
+                    this.ctx.quadraticCurveTo(midX, midY + offset, conn.to.x, conn.to.y);
+                    this.ctx.stroke();
+                    
+                    this.ctx.shadowBlur = 0;
+                });
+                
+                // Draw neurons with enhanced visuals
+                this.neurons.forEach(neuron => {
+                    const baseSize = 3;
+                    const pulse = Math.sin(neuron.pulsePhase) * 0.15 + 1;
+                    const size = baseSize + neuron.activation * 9 * pulse;
+                    const alpha = 0.25 + neuron.activation * 0.75;
+                    
+                    // Outer glow for highly activated neurons
+                    if (neuron.activation > 0.3) {
+                        const glowSize = size * 3;
+                        const glowGradient = this.ctx.createRadialGradient(
+                            neuron.x, neuron.y, 0, neuron.x, neuron.y, glowSize
+                        );
+                        const [r, g, b] = neuron.color;
+                        glowGradient.addColorStop(0, `rgba(${r}, ${g}, ${b}, ${neuron.activation * 0.4})`);
+                        glowGradient.addColorStop(0.5, `rgba(${r}, ${g}, ${b}, ${neuron.activation * 0.2})`);
+                        glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+                        this.ctx.fillStyle = glowGradient;
+                        this.ctx.beginPath();
+                        this.ctx.arc(neuron.x, neuron.y, glowSize, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                    
+                    // Main neuron body with gradient
+                    const gradient = this.ctx.createRadialGradient(
+                        neuron.x - size * 0.3, neuron.y - size * 0.3, 0,
+                        neuron.x, neuron.y, size
+                    );
+                    const [r, g, b] = neuron.color;
+                    gradient.addColorStop(0, `rgba(255, 255, 255, ${alpha})`);
+                    gradient.addColorStop(0.3, `rgba(${r + 50}, ${g + 50}, ${b + 50}, ${alpha})`);
+                    gradient.addColorStop(1, `rgba(${r}, ${g}, ${b}, ${alpha * 0.9})`);
+                    
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.beginPath();
+                    this.ctx.arc(neuron.x, neuron.y, size, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Firing indicator ring
+                    if (this.firingNeurons.has(neuron) && neuron.activation > 0.5) {
+                        const ringAlpha = neuron.activation * 0.9;
+                        this.ctx.strokeStyle = `rgba(255, 255, 255, ${ringAlpha})`;
+                        this.ctx.lineWidth = 2;
+                        this.ctx.beginPath();
+                        this.ctx.arc(neuron.x, neuron.y, size + 3, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        
+                        // Inner bright core
+                        this.ctx.fillStyle = `rgba(255, 255, 255, ${ringAlpha * 0.6})`;
+                        this.ctx.beginPath();
+                        this.ctx.arc(neuron.x, neuron.y, size * 0.4, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
+                });
+                
+                // Draw layer labels with better styling
+                this.ctx.font = 'bold 11px -apple-system, sans-serif';
+                this.ctx.textAlign = 'center';
+                this.layers.forEach(layer => {
+                    const [r, g, b] = layer.color;
+                    this.ctx.fillStyle = `rgba(${r}, ${g}, ${b}, 0.7)`;
+                    this.ctx.fillText(layer.label, layer.x * this.width, this.height - 5);
+                });
+            }
+        }
+
+        async function initApp() {
+            await init();
+            transformer = new MusicTransformer();
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            
+            const canvas = document.getElementById('neural-canvas');
+            neuralViz = new NeuralNetworkVisualizer(canvas);
+            
+            document.getElementById('status').textContent = 'Ready to generate music';
+            updateTransformerStats();
+            setupScrubber();
+        }
+
+        function updateTransformerStats() {
+            if (!transformer) return;
+            
+            const tempo = parseInt(document.getElementById('tempo').value);
+            const melodic = document.getElementById('melodic-mode').checked;
+            const instrumentNames = ['Robo', 'Piano', 'Guitar'];
+            
+            // Calculate derived values
+            const beatDuration = 60.0 / tempo;
+            const noteDuration = beatDuration / 2.0; // Eighth notes
+            const sequenceLength = Math.max(16, Math.ceil(currentTargetDuration / noteDuration));
+            const totalSamples = sequenceLength * Math.floor(currentSampleRate * noteDuration);
+            
+            // Update all stat fields
+            document.getElementById('stat-tempo').textContent = tempo;
+            document.getElementById('stat-instrument').textContent = instrumentNames[currentInstrument];
+            document.getElementById('stat-mode').textContent = melodic ? 'Melodic' : 'Harmonic';
+            document.getElementById('stat-sample-rate').textContent = currentSampleRate.toLocaleString() + ' Hz';
+            document.getElementById('stat-seq-length').textContent = sequenceLength;
+            document.getElementById('stat-duration').textContent = (sequenceLength * noteDuration).toFixed(2) + 's';
+            document.getElementById('stat-note-duration').textContent = noteDuration.toFixed(3) + 's';
+            document.getElementById('stat-total-samples').textContent = totalSamples.toLocaleString();
+            document.getElementById('stat-num-notes').textContent = '8 (Pentatonic)';
+            document.getElementById('stat-target-duration').textContent = currentTargetDuration.toFixed(1) + 's';
+        }
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function togglePlayPause() {
+            if (!currentBuffer) return;
+            
+            const playPauseIcon = document.getElementById('play-pause-icon');
+            
+            if (isPlaying) {
+                // Pause
+                if (currentSource) {
+                    currentSource.stop();
+                    currentSource = null;
+                }
+                isPlaying = false;
+                playPauseIcon.textContent = '▶';
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                }
+            } else {
+                // Play/Resume
+                const elapsed = parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
+                playFromPosition(elapsed);
+                playPauseIcon.textContent = '⏸';
+            }
+        }
+
+        function updateScrubber() {
+            if (!isPlaying || !currentBuffer) return;
+            
+            const elapsed = audioContext.currentTime - startTime;
+            const duration = currentBuffer.duration;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            
+            document.getElementById('scrubber-progress').style.width = `${progress}%`;
+            document.getElementById('scrubber-handle').style.left = `${progress}%`;
+            document.getElementById('current-time').textContent = formatTime(elapsed);
+            
+            if (elapsed < duration && isPlaying) {
+                animationFrame = requestAnimationFrame(updateScrubber);
+            } else if (elapsed >= duration) {
+                isPlaying = false;
+                document.getElementById('play-pause-icon').textContent = '▶';
+                document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
+                document.getElementById('status').classList.remove('generating');
+                // Re-enable generate button immediately after playback finishes
+                document.getElementById('generate-btn').disabled = false;
+                isGenerating = false;
+            }
+        }
+
+        function setupScrubber() {
+            const track = document.getElementById('scrubber-track');
+            const handle = document.getElementById('scrubber-handle');
+            
+            function seek(e) {
+                if (!currentBuffer) return;
+                
+                const rect = track.getBoundingClientRect();
+                const x = e.clientX - rect.left;
+                const percentage = Math.max(0, Math.min(1, x / rect.width));
+                const seekTime = percentage * currentBuffer.duration;
+                
+                if (currentSource) {
+                    currentSource.stop();
+                    currentSource = null;
+                }
+                
+                playFromPosition(seekTime);
+            }
+            
+            handle.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) seek(e);
+            });
+            
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+            });
+            
+            track.addEventListener('click', seek);
+        }
+
+        function playFromPosition(startOffset) {
+            if (!currentBuffer) return;
+            
+            currentSource = audioContext.createBufferSource();
+            currentSource.buffer = currentBuffer;
+            currentSource.connect(audioContext.destination);
+            currentSource.start(0, startOffset);
+            
+            startTime = audioContext.currentTime - startOffset;
+            isPlaying = true;
+            
+            // Update play/pause button
+            document.getElementById('play-pause-icon').textContent = '⏸';
+            document.getElementById('play-pause-btn').disabled = false;
+            
+            currentSource.onended = () => {
+                if (audioContext.currentTime - startTime >= currentBuffer.duration - 0.1) {
+                    isPlaying = false;
+                    document.getElementById('play-pause-icon').textContent = '▶';
+                    document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
+                    document.getElementById('status').classList.remove('generating');
+                    // Re-enable generate button immediately
+                    document.getElementById('generate-btn').disabled = false;
+                    isGenerating = false;
+                }
+            };
+            
+            updateScrubber();
+        }
+
+        function exportToWav() {
+            if (!currentBuffer) return;
+            
+            const numberOfChannels = 1;
+            const sampleRate = currentBuffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            
+            const channelData = currentBuffer.getChannelData(0);
+            const samples = new Int16Array(channelData.length);
+            
+            // Convert float32 to int16
+            for (let i = 0; i < channelData.length; i++) {
+                const s = Math.max(-1, Math.min(1, channelData[i]));
+                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            
+            const buffer = new ArrayBuffer(44 + samples.length * 2);
+            const view = new DataView(buffer);
+            
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + samples.length * 2, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true); // fmt chunk size
+            view.setUint16(20, format, true);
+            view.setUint16(22, numberOfChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numberOfChannels * bitDepth / 8, true);
+            view.setUint16(32, numberOfChannels * bitDepth / 8, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(36, 'data');
+            view.setUint32(40, samples.length * 2, true);
+            
+            // Write audio data
+            for (let i = 0; i < samples.length; i++) {
+                view.setInt16(44 + i * 2, samples[i], true);
+            }
+            
+            // Create download
+            const blob = new Blob([buffer], { type: 'audio/wav' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+            a.download = `neural-music-${timestamp}.wav`;
+            
+            document.body.appendChild(a);
+            a.click();
+            
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 100);
+        }
+
+        async function generateAndPlay() {
+            if (isGenerating || !transformer) return;
+            
+            isGenerating = true;
+            const button = document.getElementById('generate-btn');
+            const status = document.getElementById('status');
+            const scrubber = document.getElementById('time-scrubber');
+            
+            if (currentSource) {
+                currentSource.stop();
+                currentSource = null;
+            }
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+            
+            scrubber.classList.remove('visible');
+            button.disabled = true;
+            status.textContent = 'Generating sequence...';
+            status.classList.add('generating');
+
+            try {
+                // Ensure settings are applied before generation
+                const tempo = parseInt(document.getElementById('tempo').value);
+                const melodic = document.getElementById('melodic-mode').checked;
+                const randomSpacing = document.getElementById('random-spacing-mode').checked;
+                
+                transformer.set_tempo(tempo);
+                transformer.set_melodic(melodic);
+                transformer.set_random_spacing(randomSpacing);
+                transformer.set_instrument(currentInstrument);
+                transformer.set_sample_rate(currentSampleRate);
+                transformer.set_target_duration(currentTargetDuration);
+                
+                // Recreate audio context with new sample rate if changed
+                if (audioContext.sampleRate !== currentSampleRate) {
+                    audioContext.close();
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)({
+                        sampleRate: currentSampleRate
+                    });
+                }
+                
+                // Generate unique sequence each time (truly random)
+                const sequence = transformer.generate_sequence();
+                
+                status.textContent = 'Neural network processing...';
+                await neuralViz.generateSequence(sequence);
+                
+                status.textContent = 'Synthesizing audio...';
+                
+                // Generate audio - duration is calculated from sequence length and tempo
+                const audioSamples = transformer.generate_audio();
+                const duration = transformer.get_duration();
+                
+                currentBuffer = audioContext.createBuffer(1, audioSamples.length, currentSampleRate);
+                const channelData = currentBuffer.getChannelData(0);
+                for (let i = 0; i < audioSamples.length; i++) {
+                    channelData[i] = audioSamples[i];
+                }
+                
+                // Update transformer stats with actual values
+                document.getElementById('stat-seq-length').textContent = sequence.length;
+                document.getElementById('stat-duration').textContent = duration.toFixed(2) + 's';
+                document.getElementById('stat-total-samples').textContent = audioSamples.length.toLocaleString();
+                
+                document.getElementById('total-time').textContent = formatTime(duration);
+                document.getElementById('current-time').textContent = '0:00';
+                document.getElementById('scrubber-progress').style.width = '0%';
+                document.getElementById('scrubber-handle').style.left = '0%';
+                
+                status.textContent = 'Playing...';
+                scrubber.classList.add('visible');
+                
+                // Re-enable the generate button immediately so user can generate another while this is playing
+                button.disabled = false;
+                isGenerating = false;
+                
+                playFromPosition(0);
+                
+            } catch (error) {
+                console.error('Error generating music:', error);
+                status.textContent = 'Error occurred. Please try again.';
+                status.classList.remove('generating');
+                button.disabled = false;
+                isGenerating = false;
+            }
+        }
+
+        // Event listeners
+        document.getElementById('generate-btn').addEventListener('click', generateAndPlay);
+        document.getElementById('export-btn').addEventListener('click', exportToWav);
+        document.getElementById('play-pause-btn').addEventListener('click', togglePlayPause);
+        
+        const tempoSlider = document.getElementById('tempo');
+        const tempoDisplay = document.getElementById('tempo-display');
+        const melodicCheckbox = document.getElementById('melodic-mode');
+        const randomSpacingCheckbox = document.getElementById('random-spacing-mode');
+        const sampleRateSlider = document.getElementById('sample-rate');
+        const sampleRateDisplay = document.getElementById('sample-rate-display');
+        const targetDurationSlider = document.getElementById('target-duration');
+        const targetDurationDisplay = document.getElementById('target-duration-display');
+        
+        tempoSlider.addEventListener('input', (e) => {
+            const tempo = parseInt(e.target.value);
+            tempoDisplay.textContent = tempo;
+            if (transformer) {
+                transformer.set_tempo(tempo);
+                updateTransformerStats();
+            }
+        });
+
+        melodicCheckbox.addEventListener('change', (e) => {
+            if (transformer) {
+                transformer.set_melodic(e.target.checked);
+                updateTransformerStats();
+            }
+        });
+
+        randomSpacingCheckbox.addEventListener('change', (e) => {
+            if (transformer) {
+                transformer.set_random_spacing(e.target.checked);
+            }
+        });
+
+        sampleRateSlider.addEventListener('input', (e) => {
+            const sampleRate = parseInt(e.target.value);
+            currentSampleRate = sampleRate;
+            sampleRateDisplay.textContent = sampleRate.toLocaleString();
+            if (transformer) {
+                transformer.set_sample_rate(sampleRate);
+                updateTransformerStats();
+            }
+        });
+
+        targetDurationSlider.addEventListener('input', (e) => {
+            const duration = parseInt(e.target.value);
+            currentTargetDuration = duration;
+            targetDurationDisplay.textContent = duration;
+            if (transformer) {
+                transformer.set_target_duration(duration);
+                updateTransformerStats();
+            }
+        });
+
+        // Instrument selector
+        document.querySelectorAll('.instrument-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                // Remove active class from all buttons
+                document.querySelectorAll('.instrument-btn').forEach(b => b.classList.remove('active'));
+                // Add active class to clicked button
+                e.target.classList.add('active');
+                
+                // Set instrument in transformer
+                currentInstrument = parseInt(e.target.dataset.instrument);
+                if (transformer) {
+                    transformer.set_instrument(currentInstrument);
+                    updateTransformerStats();
+                }
+            });
+        });
+
+        // Info button handlers
+        const infoButton = document.getElementById('info-button');
+        const infoPopup = document.getElementById('info-popup');
+        const infoPopupClose = document.getElementById('info-popup-close');
+
+        infoButton.addEventListener('click', () => {
+            infoPopup.classList.add('active');
+        });
+
+        infoPopupClose.addEventListener('click', () => {
+            infoPopup.classList.remove('active');
+        });
+
+        // Close popup when clicking outside
+        infoPopup.addEventListener('click', (e) => {
+            if (e.target === infoPopup) {
+                infoPopup.classList.remove('active');
+            }
+        });
+
+        // Initialize
+        initApp();
+    </script>
+</body>
+</html>

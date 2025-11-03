@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>ML Visualizer</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🤖</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <!-- Info Button -->
+    <button class="info-button" id="info-button" title="About this project">ℹ️</button>
+    
+    <!-- Info Popup -->
+    <div class="info-popup" id="info-popup">
+        <div class="info-popup-content">
+            <button class="info-popup-close" id="info-popup-close">&times;</button>
+            <h2>About</h2>
+            <p>This tool was created for CEE 4803 (Art & Generative AI) at the Georgia Institute of Technology.</p>
+            <p>It pairs with our Libre textbook, <a href="https://github.com/Fedele-AI/AI_Fundamentals" target="_blank" rel="noopener noreferrer">AI Fundamentals</a>.</p>
+            <div class="info-section">
+                <h3>Main Developer:</h3>
+                <p><a href="https://alexj.io" target="_blank" rel="noopener noreferrer">Kenneth (Alex) Jenkins</a></p>
+            </div>
+            
+            <div class="info-section">
+                <h3>Overseeing Professor:</h3>
+                <p><a href="https://scholar.google.com/citations?user=iaHIkTAAAAAJ" target="_blank" rel="noopener noreferrer">Dr. Francesco Fedele</a></p>
+            </div>
+
+            <div class="info-section">
+                <h3>Source Code:</h3>
+                <p><a href="https://github.com/Fedele-AI/MLvisualizer" target="_blank" rel="noopener noreferrer">ML Visualizer (GPLv3)</a></p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Homepage Section -->
+        <section id="homepage" class="homepage active">
+            <header class="hero">
+                <h1>ML Visualizer</h1>
+                <p class="subtitle">Interactive demonstrations of AI and machine learning architectures</p>
+            </header>
+
+            <div class="demo-grid">
+                <div class="demo-card" data-demo="perceptron">
+                    <div class="demo-icon">⚡</div>
+                    <h3>Perceptron</h3>
+                    <p>The foundational building block of neural networks - a simple linear classifier</p>
+                    <div class="demo-tags">
+                        <span class="tag">Supervised</span>
+                        <span class="tag">Classification</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="deep-perceptron">
+                    <div class="demo-icon">🧠</div>
+                    <h3>Deep Perceptron (MLP)</h3>
+                    <p>Multi-layer neural network with hidden layers for complex decision boundaries</p>
+                    <div class="demo-tags">
+                        <span class="tag">Supervised</span>
+                        <span class="tag">Deep Learning</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="ising">
+                    <div class="demo-icon">🧲</div>
+                    <h3>Ising Model</h3>
+                    <p>Statistical physics model showing spin interactions and phase transitions</p>
+                    <div class="demo-tags">
+                        <span class="tag">Physics</span>
+                        <span class="tag">Energy-based</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="hopfield">
+                    <div class="demo-icon">💾</div>
+                    <h3>Hopfield Network</h3>
+                    <p>Associative memory network that stores and retrieves patterns</p>
+                    <div class="demo-tags">
+                        <span class="tag">Recurrent</span>
+                        <span class="tag">Memory</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="autoencoder">
+                    <div class="demo-icon">📦</div>
+                    <h3>Autoencoder</h3>
+                    <p>Compress and reconstruct data through a bottleneck latent representation</p>
+                    <div class="demo-tags">
+                        <span class="tag">Unsupervised</span>
+                        <span class="tag">Compression</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="rbm">
+                    <div class="demo-icon">🔄</div>
+                    <h3>Restricted Boltzmann Machine</h3>
+                    <p>A generative network with bidirectional energy flow between visible and hidden layers</p>
+                    <div class="demo-tags">
+                        <span class="tag">Unsupervised</span>
+                        <span class="tag">Generative</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="vae">
+                    <div class="demo-icon">🎲</div>
+                    <h3>Variational Autoencoder</h3>
+                    <p>Probabilistic encoder-decoder that learns continuous latent distributions</p>
+                    <div class="demo-tags">
+                        <span class="tag">Generative</span>
+                        <span class="tag">Probabilistic</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="normalizing-flow">
+                    <div class="demo-icon">🌊</div>
+                    <h3>Normalizing Flow</h3>
+                    <p>Invertible transformations that map simple to complex distributions</p>
+                    <div class="demo-tags">
+                        <span class="tag">Generative</span>
+                        <span class="tag">Probabilistic</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="cnn-encoder-decoder">
+                    <div class="demo-icon">🖼️</div>
+                    <h3>CNN Encoder-Decoder</h3>
+                    <p>Bidirectional convolutional network for image processing tasks</p>
+                    <div class="demo-tags">
+                        <span class="tag">Computer Vision</span>
+                        <span class="tag">Spatial</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="transformer">
+                    <div class="demo-icon">🤖</div>
+                    <h3>Transformer</h3>
+                    <p>Modern architecture using attention mechanisms to process sequences</p>
+                    <div class="demo-tags">
+                        <span class="tag">Attention</span>
+                        <span class="tag">NLP</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="mamba2">
+                    <div class="demo-icon">🐍</div>
+                    <h3>Mamba2</h3>
+                    <p>State-of-the-art architecture replacing Transformers with linear-time complexity for ultra-long sequences</p>
+                    <div class="demo-tags">
+                        <span class="tag">State-of-the-art</span>
+                        <span class="tag">Efficient</span>
+                    </div>
+                </div>
+
+                <div class="demo-card" data-demo="cuda">
+                    <div class="demo-icon">⚡</div>
+                    <h3>CUDA Visualization</h3>
+                    <p>GPU parallel computing concepts: threads, blocks, and memory hierarchy</p>
+                    <div class="demo-tags">
+                        <span class="tag">GPU</span>
+                        <span class="tag">Parallel</span>
+                    </div>
+                </div>
+
+                <a href="neural-music.html" class="demo-card wide" style="text-decoration: none; color: inherit;">
+                    <div class="demo-icon">🎵</div>
+                    <h3>Neural Music Generator</h3>
+                    <p>Transformer-based architecture that generates original melodies using self-attention mechanisms and sequential pattern learning</p>
+                    <div class="demo-tags">
+                        <span class="tag">Transformer</span>
+                        <span class="tag">Attention</span>
+                        <span class="tag">Generative</span>
+                        <span class="tag">Audio</span>
+                    </div>
+                </a>
+            </div>
+        </section>
+
+        <!-- Demo View Container -->
+        <div id="demo-view" class="demo-view">
+            <button class="back-button" id="back-to-home">← Back to Home</button>
+
+            <!-- Perceptron Section -->
+            <section id="perceptron" class="visualization-section">
+                <div class="info-panel">
+                    <h2>Perceptron</h2>
+                    
+                    <div class="explanation-box">
+                        <h3>How it works:</h3>
+                        <ul>
+                            <li><strong>Inputs:</strong> Different pieces of information (like the checklist items)</li>
+                            <li><strong>Weights:</strong> How important each piece of information is</li>
+                            <li><strong>Sum It Up:</strong> Multiply each input by its weight and add them together</li>
+                            <li><strong>Make Decision:</strong> If the total is high enough, say "yes", otherwise "no"</li>
+                            <li><strong>Learn:</strong> When wrong, adjust the weights to get better next time</li>
+                        </ul>
+                    </div>
+
+                    <div class="controls">
+                        <button id="perceptron-start" class="btn btn-primary">Start Training</button>
+                        <button id="perceptron-reset" class="btn btn-secondary">Reset</button>
+                        <label>
+                            Speed: <input type="range" id="perceptron-speed" min="1" max="10" value="3">
+                        </label>
+                    </div>
+
+                    <p class="description">
+                        A perceptron is like a simple decision-maker with a checklist. Imagine a bouncer at a party who decides if you can come in based on a few things: Are you on the guest list? Are you wearing nice shoes? Do you have an invitation? The bouncer gives each rule a different importance (weight), adds up the scores, and makes a final yes/no decision. When the bouncer makes mistakes, they learn by adjusting how important each rule is!
+                    </p>
+                </div>
+
+                <div class="canvas-container">
+                    <canvas id="perceptron-canvas"></canvas>
+                    <div class="layer-labels">
+                        <span class="label input-label">Input Features</span>
+                        <span class="label output-label">Output Decision</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RBM Section -->
+        <section id="rbm" class="visualization-section">
+            <div class="info-panel">
+                <h2>Restricted Boltzmann Machine (RBM)</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Visible Layer:</strong> The data we can see (like pixels in an image)</li>
+                        <li><strong>Hidden Layer:</strong> Secret patterns the machine discovers (like "pointy ears" or "whiskers")</li>
+                        <li><strong>Two-Way Learning:</strong> Information flows both directions, like a conversation</li>
+                        <li><strong>Restricted:</strong> Switches only talk between layers, not within their own layer</li>
+                        <li><strong>Uses:</strong> Learning patterns, recommender systems, filling in missing data</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="rbm-start" class="btn btn-primary">Start Training</button>
+                    <button id="rbm-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="rbm-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    An RBM is like a box full of light switches that can turn on or off. Some switches are on the front (visible units - things we can see) and some are hidden inside (hidden units - patterns we discover). The cool part? The switches talk to each other! If you flip the visible switches in a certain pattern (like showing it a picture of a cat), the hidden switches learn to recognize "cat-ness". Then you can flip the hidden switches and the visible ones will show you a new cat picture!
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="rbm-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label visible-label">Visible Layer</span>
+                    <span class="label hidden-label">Hidden Layer</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Autoencoder Section -->
+        <section id="autoencoder" class="visualization-section">
+            <div class="info-panel">
+                <h2>Autoencoder</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Input:</strong> The original information (like a full lecture)</li>
+                        <li><strong>Encoder:</strong> Squishes it down to the most important parts (taking notes)</li>
+                        <li><strong>Latent Space:</strong> The compressed, super-important information (your notes)</li>
+                        <li><strong>Decoder:</strong> Expands the notes back to full size (studying from notes)</li>
+                        <li><strong>Output:</strong> Reconstructed version that should match the input</li>
+                        <li><strong>Uses:</strong> Image compression, noise removal, anomaly detection</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="ae-start" class="btn btn-primary">Start Encoding</button>
+                    <button id="ae-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="ae-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    An autoencoder is like a really clever note-taker in class. Instead of writing down everything the teacher says word-for-word, they write short notes with just the most important ideas (encoding). Later, when studying for the test, they can expand those short notes back into full explanations (decoding). If the notes are good, you can recreate almost the whole lecture! The autoencoder learns what's "important enough" to write down to recreate the original information.
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="ae-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">Encoder</span>
+                    <span class="label latent-label">Latent</span>
+                    <span class="label decoder-label">Decoder</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Ising Model Section -->
+        <section id="ising" class="visualization-section">
+            <div class="info-panel">
+                <h2>Ising Model</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Spins:</strong> Each cell is a tiny magnet pointing up (white) or down (black)</li>
+                        <li><strong>Neighbors:</strong> Magnets talk to their neighbors and try to match them</li>
+                        <li><strong>Energy:</strong> System is "happy" (low energy) when neighbors match</li>
+                        <li><strong>Temperature:</strong> How random the magnets are (cold = organized, hot = chaotic)</li>
+                        <li><strong>Phase Transition:</strong> Watch order emerge from chaos as temperature changes!</li>
+                        <li><strong>Uses:</strong> Understanding magnetism, neural networks, social dynamics</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="ising-start" class="btn btn-primary">Start Simulation</button>
+                    <button id="ising-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Temperature: <input type="range" id="ising-temp" min="0.1" max="5" step="0.1" value="2.27">
+                    </label>
+                    <label>
+                        Speed: <input type="range" id="ising-speed" min="1" max="10" value="5">
+                    </label>
+                </div>
+
+                <p class="description">
+                    The Ising Model is like a checkerboard where each square is a tiny magnet that wants to point either up or down. Here's the cool part: each magnet wants to match its neighbors - if your neighbor points up, you want to point up too! Temperature is like how much the magnets "wiggle around". When it's cold, all the magnets line up the same way (like everyone wearing the same team jersey). When it's hot, they point randomly (like a messy crowd). This shows how simple rules create complex group behavior!
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="ising-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label visible-label">Temperature: <span id="ising-temp-display">2.27</span></span>
+                    <span class="label hidden-label">Energy: <span id="ising-energy-display">0</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Hopfield Network Section -->
+        <section id="hopfield" class="visualization-section">
+            <div class="info-panel">
+                <h2>Hopfield Network</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Fully Connected:</strong> Every neuron talks to every other neuron (like a group chat)</li>
+                        <li><strong>Store Memories:</strong> Patterns are saved by adjusting connection strengths</li>
+                        <li><strong>Pattern Recall:</strong> Show a damaged pattern, get the complete memory back</li>
+                        <li><strong>Energy Landscape:</strong> Memories are valleys; the network rolls into the nearest one</li>
+                        <li><strong>Robust:</strong> Works even with noisy or incomplete inputs</li>
+                        <li><strong>Uses:</strong> Pattern recognition, memory restoration, optimization problems</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="hopfield-store" class="btn btn-primary">Store Patterns</button>
+                    <button id="hopfield-recall" class="btn btn-primary">Test Recall</button>
+                    <button id="hopfield-clear" class="btn btn-secondary">Clear Canvas</button>
+                    <button id="hopfield-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Noise Level: <input type="range" id="hopfield-noise" min="0" max="50" value="20">
+                    </label>
+                </div>
+
+                <p class="description">
+                    A Hopfield Network is like a magic photo restoration machine. Imagine you have a damaged old photograph with parts missing or blurry. You show it to the network, and it "remembers" complete photos it saw before and fixes your damaged one! It's like when you see half a face and your brain fills in the rest. The network stores memories as patterns, and when you give it a partial or noisy pattern, it rolls downhill into the closest complete memory - like a ball rolling into a valley!
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="hopfield-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label input-label">Current State</span>
+                    <span class="label latent-label">Stored Patterns: <span id="hopfield-patterns">0</span></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Transformer Section -->
+                <!-- Transformer Section -->
+        <section id="transformer" class="visualization-section">
+            <div class="info-panel">
+                <h2>Transformer</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Next-token prediction:</strong> Given some text (tokens), it predicts a probability for the <em>next</em> token</li>
+                        <li><strong>Pick a token:</strong> Choose the most likely token (argmax) or sample using temperature/top-k</li>
+                        <li><strong>Repeat:</strong> Append that token and predict the next one again — this is how generation works</li>
+                        <li><strong>Under the hood:</strong> Self‑attention builds a context-aware representation to make that one prediction better</li>
+                        <li><strong>That’s it:</strong> Transformers are trained to be excellent next‑token predictors</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <label for="transformer-input">Your prompt</label>
+                    <input id="transformer-input" type="text" placeholder="Type a few words… e.g., 'the cat'">
+                    <div class="control-row">
+                        <label>
+                            Temperature: <input type="range" id="transformer-temp" min="0.2" max="2.0" step="0.1" value="1.0">
+                            <span id="transformer-temp-display">1.0</span>
+                        </label>
+                        <label>
+                            Top‑k: <input type="range" id="transformer-topk" min="1" max="10" step="1" value="5">
+                            <span id="transformer-topk-display">5</span>
+                        </label>
+                    </div>
+                    <div class="btn-row">
+                        <button id="transformer-predict" class="btn btn-primary">Predict next token</button>
+                        <button id="transformer-append" class="btn btn-secondary">Append top prediction</button>
+                        <button id="transformer-clear" class="btn btn-secondary">Clear</button>
+                    </div>
+                </div>
+
+                <p class="description">
+                    In practice, a Transformer takes the tokens you’ve typed and outputs a probability distribution over the next token. Pick one, append it, and repeat. Internally, self‑attention helps the model use relevant context to make that single step as accurate as possible. Chat, translation, and code generation are just this next‑token game played many times.
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="transformer-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Prompt</span>
+                    <span class="label encoder-label">Context</span>
+                    <span class="label latent-label">Scores</span>
+                    <span class="label decoder-label">Softmax</span>
+                    <span class="label output-label">Next Token</span>
+                </div>
+                <div id="transformer-results" class="results">
+                    <div class="results-header">Top predictions</div>
+                    <ul id="transformer-topk-list" class="token-list"></ul>
+                </div>
+            </div>
+        </section>
+
+        <!-- Deep Perceptron Section -->
+        <section id="deep-perceptron" class="visualization-section">
+            <div class="info-panel">
+                <h2>Deep Perceptron (MLP)</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Input Layer:</strong> Takes in raw data (pixels, numbers, features)</li>
+                        <li><strong>Hidden Layers:</strong> Each layer learns increasingly complex patterns</li>
+                        <li><strong>Neurons:</strong> Like tiny decision-makers that add up all their inputs</li>
+                        <li><strong>Activation Functions:</strong> Add non-linearity so network can learn curves, not just straight lines</li>
+                        <li><strong>Backpropagation:</strong> When wrong, learns by adjusting all decisions backwards</li>
+                        <li><strong>Uses:</strong> Image recognition, spam detection, credit scoring, recommendation systems</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="deep-start" class="btn btn-primary">Start Training</button>
+                    <button id="deep-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="deep-speed" min="0.5" max="5" step="0.5" value="1.5">
+                    </label>
+                </div>
+
+                <p class="description">
+                    A Deep Perceptron (MLP) is like a tower of smart committees, each one making decisions based on what the committee below figured out! The first committee looks at raw information (like pixels in a photo). The second committee looks at patterns the first one found (like "edges"). The third committee spots bigger patterns (like "circles" or "corners"). Each committee learns what's important and passes it up. By the time you reach the top, the network can recognize really complex things like "this is a cat" or "this email is spam!" It's like playing telephone, but each person in line makes the message smarter instead of more confusing.
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="deep-canvas"></canvas>
+                <div class="layer-labels deep-labels">
+                    <span class="label deep-input-label">INPUT</span>
+                    <span class="label deep-hidden-label">HIDDEN 1</span>
+                    <span class="label deep-hidden-label">HIDDEN 2</span>
+                    <span class="label deep-hidden-label">HIDDEN 3</span>
+                    <span class="label deep-output-label">OUTPUT</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Normalizing Flow Section -->
+        <section id="normalizing-flow" class="visualization-section">
+            <div class="info-panel">
+                <h2>Normalizing Flow</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Base Distribution:</strong> Starts with simple randomness (like a ball of Play-Doh)</li>
+                        <li><strong>Transformation Layers:</strong> Each layer warps/twists the data in a reversible way</li>
+                        <li><strong>Invertible:</strong> Can run forwards (create data) or backwards (analyze data)</li>
+                        <li><strong>Exact Probabilities:</strong> Knows how likely any particular output is</li>
+                        <li><strong>Flow:</strong> Data "flows" through transformations like water through pipes</li>
+                        <li><strong>Uses:</strong> Generating realistic images/audio, density estimation, anomaly detection</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="nf-start" class="btn btn-primary">Start Flow</button>
+                    <button id="nf-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="nf-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    A Normalizing Flow is like a Play-Doh factory that can make ANY shape you want! You start with a simple ball of Play-Doh (easy to make). Then you push it through a series of special molds - twist here, stretch there, bend this way. Each mold transforms it step-by-step. The cool part? You can write down EXACTLY what each mold does, so you can reverse the whole process perfectly! If you want another copy, just start with a ball and push through the same molds. This is how AI can create realistic faces, voices, or artwork - it learns what "molds" (transformations) turn random noise into the real thing.
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="nf-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label nf-base-label">Base Z</span>
+                    <span class="label nf-flow1-label">Flow 1</span>
+                    <span class="label nf-flow2-label">Flow 2</span>
+                    <span class="label nf-flow3-label">Flow 3</span>
+                    <span class="label nf-data-label">Data X</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Variational Autoencoder Section -->
+        <section id="vae" class="visualization-section">
+            <div class="info-panel">
+                <h2>Variational Autoencoder (VAE)</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Encoder:</strong> Learns to describe inputs as a range (not one exact point)</li>
+                        <li><strong>Latent Space:</strong> A "map" where similar things are close together</li>
+                        <li><strong>Sampling:</strong> Picks a point in that range (adds controlled randomness)</li>
+                        <li><strong>Decoder:</strong> Turns that point back into a full image/data</li>
+                        <li><strong>Training:</strong> Learns to recreate inputs while keeping latent space organized</li>
+                        <li><strong>Uses:</strong> Generating new faces, drug discovery, music composition, image interpolation</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="vae-start" class="btn btn-primary">Start Encoding</button>
+                    <button id="vae-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="vae-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    A VAE is like an artist who doesn't trace drawings exactly - they learn the STYLE! Imagine showing an artist 1000 cat photos. Instead of memorizing each cat, they learn "cats usually have pointy ears, whiskers, and round eyes - but every cat is slightly different." Now when you ask them to draw a new cat, they don't copy an old photo; they create a unique cat using what they learned about "cat-ness." The magic is they also learn WHERE in "cat space" each feature lives (fluffy vs. short-hair, big vs. small), so you can even say "draw me a cat that's halfway between these two!" This is how AI generates new faces, art, or music that look real but never existed before.
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="vae-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label vae-input-label">Input</span>
+                    <span class="label vae-encoder-label">μ, σ</span>
+                    <span class="label vae-latent-label">z ~ N(μ,σ)</span>
+                    <span class="label vae-encoder-label">Decoder</span>
+                    <span class="label vae-output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CNN Encoder-Decoder Section -->
+        <section id="cnn-encoder-decoder" class="visualization-section">
+            <div class="info-panel">
+                <h2>CNN Encoder-Decoder</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Encoder:</strong> Shrinks the image while capturing important patterns (like edges and shapes)</li>
+                        <li><strong>Bottleneck:</strong> The smallest, most compressed version with just the essential information</li>
+                        <li><strong>Decoder:</strong> Expands it back to full size, adding details back in</li>
+                        <li><strong>Skip Connections:</strong> Shortcuts that help remember fine details from the original</li>
+                        <li><strong>Uses:</strong> Removing backgrounds, enhancing photos, medical image analysis</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="cnn-start" class="btn btn-primary">Process Image</button>
+                    <button id="cnn-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="cnn-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    Imagine you're looking at a photo through a magnifying glass that first makes everything blurry and simple (like squinting your eyes), then gradually brings back all the details. The CNN Encoder-Decoder is like a smart camera that first simplifies an image by focusing on the most important shapes and patterns, then rebuilds it with all the details restored - like taking a puzzle apart and putting it back together, but now you understand every piece!
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="cnn-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label cnn-input-label">Input</span>
+                    <span class="label cnn-conv-label">Conv↓</span>
+                    <span class="label cnn-latent-label">Features</span>
+                    <span class="label cnn-deconv-label">Conv↑</span>
+                    <span class="label cnn-output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Mamba2 Section -->
+                <!-- Mamba2 Section -->
+        <section id="mamba2" class="visualization-section">
+            <div class="info-panel">
+                <h2>Mamba2 Architecture</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>Replacing Transformers:</strong> Mamba2 is a breakthrough architecture that solves the main limitation of Transformers - their quadratic complexity with sequence length</li>
+                        <li><strong>Linear Complexity:</strong> While Transformers slow down dramatically with long sequences (computing attention between all token pairs), Mamba2 maintains constant speed regardless of length</li>
+                        <li><strong>Selective State Spaces:</strong> Uses a compact memory that intelligently decides what information to retain and what to forget, unlike Transformers that must attend to everything</li>
+                        <li><strong>Hardware Optimized:</strong> Designed from the ground up for modern GPU architectures, achieving 5-10x faster inference than Transformers</li>
+                        <li><strong>State-of-the-Art Performance:</strong> Matches or exceeds Transformer quality while handling 10x longer contexts (millions of tokens vs. hundreds of thousands)</li>
+                        <li><strong>The Future:</strong> Being rapidly adopted for long-document understanding, genomics, time-series forecasting, and next-generation language models</li>
+                        <li><strong>Why It Matters:</strong> Enables AI to process entire books, codebases, or conversations in a single pass - something Transformers struggle with</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="mamba2-start" class="btn btn-primary">Process Sequence</button>
+                    <button id="mamba2-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="mamba2-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    Think of Transformers as a student who needs to compare every word in a book with every other word to understand it - this gets impossibly slow with long books! Mamba2 is like a speed-reader with a smart notebook: as it reads, it instantly decides "This is important, write it down" or "This is background info, skip it." The notebook stays small and organized, so even with massive texts, Mamba2 reads at lightning speed. This breakthrough is why Mamba2 is rapidly replacing Transformers in applications that need to understand really long sequences - from analyzing entire research papers to processing hours of conversation history.
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="mamba2-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label mamba2-input-label">Input</span>
+                    <span class="label mamba2-state-label">State</span>
+                    <span class="label mamba2-gate-label">Gates</span>
+                    <span class="label mamba2-state-label">Updated State</span>
+                    <span class="label mamba2-output-label">Output</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- CUDA Visualization Section -->
+        <section id="cuda" class="visualization-section">
+            <div class="info-panel">
+                <h2>CUDA</h2>
+                
+                <div class="explanation-box">
+                    <h3>How it works:</h3>
+                    <ul>
+                        <li><strong>GPU Cores:</strong> Thousands of mini-processors working simultaneously</li>
+                        <li><strong>Thread Blocks:</strong> Groups of workers that share information quickly</li>
+                        <li><strong>Parallel Threads:</strong> Individual workers each doing one small task</li>
+                        <li><strong>Shared Memory:</strong> A fast whiteboard for each group to share notes</li>
+                        <li><strong>Global Memory:</strong> The big storage room everyone can access (but it's slower)</li>
+                        <li><strong>Uses:</strong> Training neural networks, graphics rendering, scientific simulations</li>
+                    </ul>
+                </div>
+
+                <div class="controls">
+                    <button id="cuda-start" class="btn btn-primary">Launch Kernel</button>
+                    <button id="cuda-reset" class="btn btn-secondary">Reset</button>
+                    <label>
+                        Speed: <input type="range" id="cuda-speed" min="1" max="10" value="3">
+                    </label>
+                </div>
+
+                <p class="description">
+                    Imagine you have a big homework assignment with 1000 math problems. Your regular CPU is like having ONE really smart student who solves each problem one at a time - fast, but it takes a while. A GPU with CUDA is like having a classroom with THOUSANDS of students who each solve one problem at the same time! Even though each student might be a bit slower than the super-smart one, when they all work together, they finish the whole assignment way faster. That's why GPUs are perfect for training AI!
+                </p>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="cuda-canvas"></canvas>
+            </div>
+        </section>
+
+        </div>
+
+        <footer>
+            <p>ML Visualizer | Built for CEE 4803 at <a href="https://www.gatech.edu" target="_blank" rel="noopener noreferrer">Georgia Tech</a> | Licensed under <a href="https://www.gnu.org/licenses/gpl-3.0.html" target="_blank" rel="noopener noreferrer">GPLv3</a></p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>

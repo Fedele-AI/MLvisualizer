@@ -1,0 +1,25 @@
+# Rust/WebAssembly build artifacts (source files not needed for deployment)
+target/
+Cargo.lock
+Cargo.toml
+build.sh
+src/
+
+# MLvisualizer subfolder (now moved to root)
+MLvisualizer/
+
+# macOS
+.DS_Store
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
