@@ -1,9 +1,6 @@
-# Rust/WebAssembly build artifacts (source files not needed for deployment)
+# Rust/WebAssembly build artifacts
 target/
 Cargo.lock
-Cargo.toml
-build.sh
-src/
 
 # MLvisualizer subfolder (now moved to root)
 MLvisualizer/
