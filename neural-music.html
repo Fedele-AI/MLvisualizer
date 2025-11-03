@@ -1516,7 +1516,6 @@
         let isInitialized = false;
         let currentSource = null;
         let currentBuffer = null;
-        let currentAudioElement = null; // For iOS Safari compatibility
         let startTime = 0;
         let pausedAt = 0;
         let isPlaying = false;
@@ -1526,25 +1525,8 @@
         let currentInstrument = 0; // 0 = Robo, 1 = Piano, 2 = Guitar
         let currentSampleRate = 44100;
         let currentTargetDuration = 12;
-        let useAudioElement = false; // Flag to use HTMLAudioElement instead of AudioContext
 
-        // Detect iOS (covers iPadOS with desktop UA)
-        const isIOS = (() => {
-            const ua = navigator.userAgent || '';
-            const platform = navigator.platform || '';
-            const iOSDevices = /iPad|iPhone|iPod/;
-            const iPadOSDesktopUA = platform === 'MacIntel' && navigator.maxTouchPoints > 1;
-            return iOSDevices.test(ua) || iPadOSDesktopUA;
-        })();
-
-        // Detect if we should use HTMLAudioElement (more reliable on iOS)
-        // Safari 14+ on iOS has issues with AudioBufferSourceNode playback
-        if (isIOS) {
-            useAudioElement = true;
-            console.log('iOS detected: Using HTMLAudioElement for audio playback');
-        }
-
-        // Ensure an unlocked/running AudioContext exists (required by iOS Safari)
+        // Ensure an unlocked/running AudioContext exists
         async function ensureAudioContext() {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             if (!audioContext) {
@@ -1556,7 +1538,7 @@
                 }
             } catch (_) { /* no-op */ }
 
-            // Play one-frame silent buffer once to fully unlock on iOS
+            // Play one-frame silent buffer once to fully unlock
             if (!audioUnlocked) {
                 try {
                     const silent = audioContext.createBuffer(1, 1, audioContext.sampleRate);
@@ -1570,7 +1552,7 @@
             return audioContext;
         }
 
-        // Linear resampler to match generated audio to the AudioContext sample rate (iOS often enforces 48000Hz)
+        // Linear resampler to match generated audio to the AudioContext sample rate
         function resampleFloat32(input, fromRate, toRate) {
             if (!input || fromRate === toRate) return input;
             const ratio = toRate / fromRate;
@@ -1584,54 +1566,6 @@
                 output[i] = input[i0] * (1 - frac) + input[i1] * frac;
             }
             return output;
-        }
-
-        // Convert AudioBuffer to WAV Blob for iOS compatibility
-        function audioBufferToWavBlob(buffer) {
-            const numberOfChannels = 1;
-            const sampleRate = buffer.sampleRate;
-            const format = 1; // PCM
-            const bitDepth = 16;
-            
-            const channelData = buffer.getChannelData(0);
-            const samples = new Int16Array(channelData.length);
-            
-            // Convert float32 to int16
-            for (let i = 0; i < channelData.length; i++) {
-                const s = Math.max(-1, Math.min(1, channelData[i]));
-                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-            }
-            
-            const dataLength = samples.length * 2;
-            const bufferArr = new ArrayBuffer(44 + dataLength);
-            const view = new DataView(bufferArr);
-            
-            // WAV header
-            const writeString = (offset, string) => {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
-            };
-            
-            writeString(0, 'RIFF');
-            view.setUint32(4, 36 + dataLength, true);
-            writeString(8, 'WAVE');
-            writeString(12, 'fmt ');
-            view.setUint32(16, 16, true);
-            view.setUint16(20, format, true);
-            view.setUint16(22, numberOfChannels, true);
-            view.setUint32(24, sampleRate, true);
-            view.setUint32(28, sampleRate * numberOfChannels * bitDepth / 8, true);
-            view.setUint16(32, numberOfChannels * bitDepth / 8, true);
-            view.setUint16(34, bitDepth, true);
-            writeString(36, 'data');
-            view.setUint32(40, dataLength, true);
-            
-            for (let i = 0; i < samples.length; i++) {
-                view.setInt16(44 + i * 2, samples[i], true);
-            }
-            
-            return new Blob([bufferArr], { type: 'audio/wav' });
         }
 
         // Draw waveform visualization
@@ -2166,30 +2100,13 @@
                     neuralViz = new NeuralNetworkVisualizer(canvas);
                     
                     isInitialized = true;
-                    status.textContent = useAudioElement ? 
-                        'Ready to generate music (iOS Mode - Enhanced Compatibility)' : 
-                        'Ready to generate music';
+                    status.textContent = 'Ready to generate music';
                     generateBtn.disabled = false;
                     updateTransformerStats();
                     setupScrubber();
-
-                    // Proactively set transformer sample rate to the eventual playback rate if on iOS
-                    // Don't create AudioContext here - wait for user interaction
-                    // Just set the default sample rate for iOS
-                    if (isIOS) {
-                        // iOS typically uses 48000 Hz
-                        currentSampleRate = 48000;
-                        transformer.set_sample_rate(currentSampleRate);
-                        const srDisplay = document.getElementById('sample-rate-display');
-                        if (srDisplay) srDisplay.textContent = currentSampleRate.toLocaleString();
-                        updateTransformerStats();
-                    }
                     
                     // Successfully initialized
                     console.log('WASM module initialized successfully');
-                    if (useAudioElement) {
-                        console.log('iOS mode enabled - using HTMLAudioElement for playback');
-                    }
                     return;
                 } catch (error) {
                     retryCount++;
@@ -2247,13 +2164,9 @@
             
             if (isPlaying) {
                 // Pause
-                if (useAudioElement && currentAudioElement) {
-                    currentAudioElement.pause();
-                    pausedAt = currentAudioElement.currentTime;
-                } else if (currentSource) {
+                if (currentSource) {
                     currentSource.stop();
                     currentSource = null;
-                    // Calculate elapsed time for Web Audio API
                     pausedAt = audioContext.currentTime - startTime;
                 }
                 
@@ -2264,15 +2177,9 @@
                 }
             } else {
                 // Play/Resume
-                if (useAudioElement && pausedAt !== undefined && pausedAt > 0) {
-                    await playFromPosition(pausedAt);
-                } else if (!useAudioElement) {
-                    const elapsed = pausedAt || parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
-                    await ensureAudioContext();
-                    await playFromPosition(elapsed);
-                } else {
-                    await playFromPosition(0);
-                }
+                const elapsed = pausedAt || parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
+                await ensureAudioContext();
+                await playFromPosition(elapsed);
                 playPauseIcon.textContent = '⏸';
             }
         }
@@ -2304,25 +2211,6 @@
             }
         }
 
-        function updateScrubberHTMLAudio() {
-            if (!isPlaying || !currentAudioElement) return;
-            
-            const elapsed = currentAudioElement.currentTime;
-            const duration = currentAudioElement.duration;
-            const progress = Math.min((elapsed / duration) * 100, 100);
-            
-            document.getElementById('scrubber-progress').style.width = `${progress}%`;
-            document.getElementById('scrubber-handle').style.left = `${progress}%`;
-            document.getElementById('current-time').textContent = formatTime(elapsed);
-            
-            // Update waveform playhead
-            drawWaveformPlayhead(progress);
-            
-            if (isPlaying && !currentAudioElement.paused && !currentAudioElement.ended) {
-                animationFrame = requestAnimationFrame(updateScrubberHTMLAudio);
-            }
-        }
-
         function setupScrubber() {
             const track = document.getElementById('scrubber-track');
             const handle = document.getElementById('scrubber-handle');
@@ -2336,10 +2224,7 @@
                 const seekTime = percentage * currentBuffer.duration;
                 
                 // Stop current playback
-                if (useAudioElement && currentAudioElement) {
-                    currentAudioElement.pause();
-                    currentAudioElement = null;
-                } else if (currentSource) {
+                if (currentSource) {
                     try {
                         currentSource.stop();
                     } catch(e) {}
@@ -2433,87 +2318,34 @@
                 } catch(e) {}
                 currentSource = null;
             }
-            if (currentAudioElement) {
-                currentAudioElement.pause();
-                currentAudioElement = null;
-            }
             
-            if (useAudioElement) {
-                // Use HTMLAudioElement for iOS Safari (more reliable)
-                console.log('Using HTMLAudioElement for playback (iOS mode)');
-                const wavBlob = audioBufferToWavBlob(currentBuffer);
-                const audioUrl = URL.createObjectURL(wavBlob);
-                
-                currentAudioElement = new Audio(audioUrl);
-                currentAudioElement.currentTime = startOffset;
-                
-                // Add preload to ensure audio is ready
-                currentAudioElement.preload = 'auto';
-                
-                try {
-                    await currentAudioElement.play();
-                    console.log('Audio playback started successfully');
-                    startTime = Date.now() / 1000 - startOffset;
-                    isPlaying = true;
-                    
-                    // Update play/pause button
-                    document.getElementById('play-pause-icon').textContent = '⏸';
-                    document.getElementById('play-pause-btn').disabled = false;
-                    
-                    currentAudioElement.onended = () => {
-                        isPlaying = false;
-                        document.getElementById('play-pause-icon').textContent = '▶';
-                        document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
-                        document.getElementById('status').classList.remove('generating');
-                        document.getElementById('generate-btn').disabled = false;
-                        isGenerating = false;
-                        URL.revokeObjectURL(audioUrl);
-                    };
-                    
-                    currentAudioElement.onerror = (e) => {
-                        console.error('Audio playback error:', e);
-                        isPlaying = false;
-                        document.getElementById('play-pause-icon').textContent = '▶';
-                        document.getElementById('status').textContent = 'Playback error - try generating again';
-                        URL.revokeObjectURL(audioUrl);
-                    };
-                    
-                    updateScrubberHTMLAudio();
-                } catch (error) {
-                    console.error('Failed to play audio:', error);
-                    document.getElementById('status').textContent = 'Failed to play - tap to try again';
+            // Use Web Audio API for all browsers
+            await ensureAudioContext();
+            
+            currentSource = audioContext.createBufferSource();
+            currentSource.buffer = currentBuffer;
+            currentSource.connect(audioContext.destination);
+            currentSource.start(0, startOffset);
+            
+            startTime = audioContext.currentTime - startOffset;
+            isPlaying = true;
+            
+            // Update play/pause button
+            document.getElementById('play-pause-icon').textContent = '⏸';
+            document.getElementById('play-pause-btn').disabled = false;
+            
+            currentSource.onended = () => {
+                if (audioContext.currentTime - startTime >= currentBuffer.duration - 0.1) {
                     isPlaying = false;
-                    URL.revokeObjectURL(audioUrl);
+                    document.getElementById('play-pause-icon').textContent = '▶';
+                    document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
+                    document.getElementById('status').classList.remove('generating');
+                    document.getElementById('generate-btn').disabled = false;
+                    isGenerating = false;
                 }
-            } else {
-                // Use Web Audio API for non-iOS browsers
-                await ensureAudioContext();
-                
-                currentSource = audioContext.createBufferSource();
-                currentSource.buffer = currentBuffer;
-                currentSource.connect(audioContext.destination);
-                currentSource.start(0, startOffset);
-                
-                startTime = audioContext.currentTime - startOffset;
-                isPlaying = true;
-                
-                // Update play/pause button
-                document.getElementById('play-pause-icon').textContent = '⏸';
-                document.getElementById('play-pause-btn').disabled = false;
-                
-                currentSource.onended = () => {
-                    if (audioContext.currentTime - startTime >= currentBuffer.duration - 0.1) {
-                        isPlaying = false;
-                        document.getElementById('play-pause-icon').textContent = '▶';
-                        document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
-                        document.getElementById('status').classList.remove('generating');
-                        document.getElementById('generate-btn').disabled = false;
-                        isGenerating = false;
-                    }
-                };
-                
-                updateScrubber();
-            }
+            };
+            
+            updateScrubber();
         }
 
         function exportToWav() {
@@ -2596,10 +2428,6 @@
                 } catch(e) {}
                 currentSource = null;
             }
-            if (currentAudioElement) {
-                currentAudioElement.pause();
-                currentAudioElement = null;
-            }
             if (animationFrame) {
                 cancelAnimationFrame(animationFrame);
             }
@@ -2649,8 +2477,8 @@
                 const duration = transformer.get_duration();
                 console.log('Audio generated:', audioSamples.length, 'samples, duration:', duration.toFixed(2), 's');
                 
-                // Create AudioBuffer for both playback modes
-                // Initialize AudioContext if needed (even for iOS we need it for the buffer)
+                // Create AudioBuffer for playback
+                // Initialize AudioContext if needed
                 if (!audioContext) {
                     const Ctx = window.AudioContext || window.webkitAudioContext;
                     audioContext = new Ctx();
@@ -2751,7 +2579,7 @@
             }
         });
 
-        // One-time global unlock on first user interaction (covers iOS Safari)
+        // One-time global unlock on first user interaction for AudioContext
         const unlockHandler = async () => {
             await ensureAudioContext();
         };
@@ -2803,9 +2631,7 @@
                 if (currentBuffer) {
                     drawWaveform(currentBuffer);
                     if (isPlaying) {
-                        const elapsed = useAudioElement ? 
-                            currentAudioElement.currentTime : 
-                            audioContext.currentTime - startTime;
+                        const elapsed = audioContext.currentTime - startTime;
                         const duration = currentBuffer.duration;
                         const progress = Math.min((elapsed / duration) * 100, 100);
                         drawWaveformPlayhead(progress);
