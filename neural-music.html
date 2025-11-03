@@ -577,14 +577,55 @@
         .time-scrubber {
             margin-top: 24px;
             display: none;
-            background: rgba(255, 255, 255, 0.5);
-            padding: 24px;
-            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 28px;
+            border-radius: 16px;
             border: 2px solid rgba(102, 126, 234, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
         }
 
         .time-scrubber.visible {
             display: block;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Waveform Visualization */
+        .waveform-container {
+            width: 100%;
+            height: 120px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.05) 0%, rgba(118, 75, 162, 0.05) 100%);
+            border-radius: 12px;
+            margin-bottom: 20px;
+            position: relative;
+            overflow: hidden;
+            border: 2px solid rgba(102, 126, 234, 0.15);
+        }
+
+        #waveform-canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .waveform-label {
+            color: rgba(102, 126, 234, 0.9);
+            font-size: 0.75em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            text-align: left;
         }
 
         .player-controls {
@@ -593,6 +634,17 @@
             align-items: center;
             margin-top: 20px;
             flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        @media (max-width: 768px) {
+            .time-scrubber {
+                padding: 20px 16px;
+            }
+
+            .player-controls {
+                gap: 12px;
+            }
         }
 
         .play-pause-btn {
@@ -697,28 +749,32 @@
 
         .scrubber-track {
             position: relative;
-            height: 8px;
+            height: 12px;
             background: rgba(102, 126, 234, 0.15);
-            border-radius: 4px;
+            border-radius: 6px;
             cursor: pointer;
             margin-bottom: 20px;
             overflow: visible;
             border: 1px solid rgba(102, 126, 234, 0.2);
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .scrubber-progress {
             position: absolute;
             height: 100%;
             background: linear-gradient(to right, #667eea, #764ba2);
-            border-radius: 4px;
+            border-radius: 6px;
             width: 0%;
             transition: width 0.1s linear;
+            pointer-events: none;
         }
 
         .scrubber-handle {
             position: absolute;
-            width: 20px;
-            height: 20px;
+            width: 24px;
+            height: 24px;
             background: white;
             border: 3px solid #667eea;
             border-radius: 50%;
@@ -726,9 +782,12 @@
             left: 0%;
             transform: translate(-50%, -50%);
             cursor: grab;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
             transition: all 0.2s ease;
             z-index: 10;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
         }
 
         .scrubber-handle:hover {
@@ -739,6 +798,20 @@
         .scrubber-handle:active {
             cursor: grabbing;
             transform: translate(-50%, -50%) scale(1.2);
+        }
+
+        /* Better mobile touch targets */
+        @media (max-width: 768px) {
+            .scrubber-track {
+                height: 16px;
+                margin-bottom: 24px;
+            }
+
+            .scrubber-handle {
+                width: 32px;
+                height: 32px;
+                border-width: 4px;
+            }
         }
 
         .scrubber-time {
@@ -1205,6 +1278,10 @@
         <button id="generate-btn">Generate Music</button>
         
         <div class="time-scrubber" id="time-scrubber">
+            <div class="waveform-label">Waveform</div>
+            <div class="waveform-container">
+                <canvas id="waveform-canvas"></canvas>
+            </div>
             <div class="scrubber-track" id="scrubber-track">
                 <div class="scrubber-progress" id="scrubber-progress"></div>
                 <div class="scrubber-handle" id="scrubber-handle"></div>
@@ -1436,9 +1513,12 @@
         let audioContext = null;
         let audioUnlocked = false;
         let isGenerating = false;
+        let isInitialized = false;
         let currentSource = null;
         let currentBuffer = null;
+        let currentAudioElement = null; // For iOS Safari compatibility
         let startTime = 0;
+        let pausedAt = 0;
         let isPlaying = false;
         let animationFrame = null;
         let isDragging = false;
@@ -1446,6 +1526,7 @@
         let currentInstrument = 0; // 0 = Robo, 1 = Piano, 2 = Guitar
         let currentSampleRate = 44100;
         let currentTargetDuration = 12;
+        let useAudioElement = false; // Flag to use HTMLAudioElement instead of AudioContext
 
         // Detect iOS (covers iPadOS with desktop UA)
         const isIOS = (() => {
@@ -1455,6 +1536,13 @@
             const iPadOSDesktopUA = platform === 'MacIntel' && navigator.maxTouchPoints > 1;
             return iOSDevices.test(ua) || iPadOSDesktopUA;
         })();
+
+        // Detect if we should use HTMLAudioElement (more reliable on iOS)
+        // Safari 14+ on iOS has issues with AudioBufferSourceNode playback
+        if (isIOS) {
+            useAudioElement = true;
+            console.log('iOS detected: Using HTMLAudioElement for audio playback');
+        }
 
         // Ensure an unlocked/running AudioContext exists (required by iOS Safari)
         async function ensureAudioContext() {
@@ -1496,6 +1584,183 @@
                 output[i] = input[i0] * (1 - frac) + input[i1] * frac;
             }
             return output;
+        }
+
+        // Convert AudioBuffer to WAV Blob for iOS compatibility
+        function audioBufferToWavBlob(buffer) {
+            const numberOfChannels = 1;
+            const sampleRate = buffer.sampleRate;
+            const format = 1; // PCM
+            const bitDepth = 16;
+            
+            const channelData = buffer.getChannelData(0);
+            const samples = new Int16Array(channelData.length);
+            
+            // Convert float32 to int16
+            for (let i = 0; i < channelData.length; i++) {
+                const s = Math.max(-1, Math.min(1, channelData[i]));
+                samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            }
+            
+            const dataLength = samples.length * 2;
+            const bufferArr = new ArrayBuffer(44 + dataLength);
+            const view = new DataView(bufferArr);
+            
+            // WAV header
+            const writeString = (offset, string) => {
+                for (let i = 0; i < string.length; i++) {
+                    view.setUint8(offset + i, string.charCodeAt(i));
+                }
+            };
+            
+            writeString(0, 'RIFF');
+            view.setUint32(4, 36 + dataLength, true);
+            writeString(8, 'WAVE');
+            writeString(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, format, true);
+            view.setUint16(22, numberOfChannels, true);
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * numberOfChannels * bitDepth / 8, true);
+            view.setUint16(32, numberOfChannels * bitDepth / 8, true);
+            view.setUint16(34, bitDepth, true);
+            writeString(36, 'data');
+            view.setUint32(40, dataLength, true);
+            
+            for (let i = 0; i < samples.length; i++) {
+                view.setInt16(44 + i * 2, samples[i], true);
+            }
+            
+            return new Blob([bufferArr], { type: 'audio/wav' });
+        }
+
+        // Draw waveform visualization
+        function drawWaveform(buffer) {
+            const canvas = document.getElementById('waveform-canvas');
+            if (!canvas || !buffer) return;
+            
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const dpr = window.devicePixelRatio || 1;
+            
+            // Set canvas size
+            canvas.width = rect.width * dpr;
+            canvas.height = rect.height * dpr;
+            ctx.scale(dpr, dpr);
+            
+            const width = rect.width;
+            const height = rect.height;
+            const channelData = buffer.getChannelData(0);
+            const step = Math.ceil(channelData.length / width);
+            const amp = height / 2;
+            
+            // Clear canvas
+            ctx.clearRect(0, 0, width, height);
+            
+            // Draw gradient background
+            const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+            bgGradient.addColorStop(0, 'rgba(102, 126, 234, 0.05)');
+            bgGradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.08)');
+            bgGradient.addColorStop(1, 'rgba(102, 126, 234, 0.05)');
+            ctx.fillStyle = bgGradient;
+            ctx.fillRect(0, 0, width, height);
+            
+            // Draw center line
+            ctx.strokeStyle = 'rgba(102, 126, 234, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(0, amp);
+            ctx.lineTo(width, amp);
+            ctx.stroke();
+            
+            // Draw waveform with gradient
+            const gradient = ctx.createLinearGradient(0, 0, 0, height);
+            gradient.addColorStop(0, 'rgba(102, 126, 234, 0.8)');
+            gradient.addColorStop(0.5, 'rgba(118, 75, 162, 0.9)');
+            gradient.addColorStop(1, 'rgba(102, 126, 234, 0.8)');
+            
+            ctx.strokeStyle = gradient;
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+            ctx.lineJoin = 'round';
+            
+            ctx.beginPath();
+            for (let i = 0; i < width; i++) {
+                let min = 1.0;
+                let max = -1.0;
+                
+                for (let j = 0; j < step; j++) {
+                    const datum = channelData[(i * step) + j];
+                    if (datum < min) min = datum;
+                    if (datum > max) max = datum;
+                }
+                
+                const x = i;
+                const y1 = (1 + min) * amp;
+                const y2 = (1 + max) * amp;
+                
+                if (i === 0) {
+                    ctx.moveTo(x, amp);
+                } else {
+                    ctx.lineTo(x, y1);
+                    ctx.lineTo(x, y2);
+                }
+            }
+            ctx.stroke();
+            
+            // Draw filled area under waveform
+            ctx.globalAlpha = 0.3;
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.moveTo(0, amp);
+            for (let i = 0; i < width; i++) {
+                let max = -1.0;
+                for (let j = 0; j < step; j++) {
+                    const datum = channelData[(i * step) + j];
+                    if (datum > max) max = datum;
+                }
+                const y = (1 + max) * amp;
+                ctx.lineTo(i, y);
+            }
+            ctx.lineTo(width, amp);
+            ctx.closePath();
+            ctx.fill();
+            
+            ctx.globalAlpha = 1.0;
+        }
+
+        // Draw playhead on waveform
+        function drawWaveformPlayhead(progress) {
+            const canvas = document.getElementById('waveform-canvas');
+            if (!canvas || !currentBuffer) return;
+            
+            // Redraw the waveform
+            drawWaveform(currentBuffer);
+            
+            const ctx = canvas.getContext('2d');
+            const rect = canvas.getBoundingClientRect();
+            const width = rect.width;
+            const height = rect.height;
+            
+            // Draw playhead position
+            const x = (progress / 100) * width;
+            
+            // Playhead line
+            ctx.strokeStyle = 'rgba(236, 72, 153, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x, height);
+            ctx.stroke();
+            
+            // Playhead indicator at top
+            ctx.fillStyle = 'rgba(236, 72, 153, 0.9)';
+            ctx.beginPath();
+            ctx.moveTo(x, 0);
+            ctx.lineTo(x - 6, 12);
+            ctx.lineTo(x + 6, 12);
+            ctx.closePath();
+            ctx.fill();
         }
 
         class NeuralNetworkVisualizer {
@@ -1881,30 +2146,66 @@
         }
 
         async function initApp() {
-            await init();
-            transformer = new MusicTransformer();
+            const status = document.getElementById('status');
+            const generateBtn = document.getElementById('generate-btn');
             
-            const canvas = document.getElementById('neural-canvas');
-            neuralViz = new NeuralNetworkVisualizer(canvas);
+            // Disable controls during initialization
+            generateBtn.disabled = true;
+            status.textContent = 'Initializing WASM module...';
             
-            document.getElementById('status').textContent = 'Ready to generate music';
-            updateTransformerStats();
-            setupScrubber();
-
-            // Proactively set transformer sample rate to the eventual playback rate if on iOS
-            // (actual playback still resamples if user chooses a different rate)
-            try {
-                const tentativeCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const ctxRate = tentativeCtx.sampleRate;
-                await tentativeCtx.close();
-                if (isIOS) {
-                    currentSampleRate = ctxRate; // prefer device rate on iOS
-                    transformer.set_sample_rate(currentSampleRate);
-                    const srDisplay = document.getElementById('sample-rate-display');
-                    if (srDisplay) srDisplay.textContent = currentSampleRate.toLocaleString();
+            let retryCount = 0;
+            const maxRetries = 3;
+            
+            while (retryCount < maxRetries) {
+                try {
+                    // Initialize WASM module
+                    await init();
+                    transformer = new MusicTransformer();
+                    
+                    const canvas = document.getElementById('neural-canvas');
+                    neuralViz = new NeuralNetworkVisualizer(canvas);
+                    
+                    isInitialized = true;
+                    status.textContent = useAudioElement ? 
+                        'Ready to generate music (iOS Mode - Enhanced Compatibility)' : 
+                        'Ready to generate music';
+                    generateBtn.disabled = false;
                     updateTransformerStats();
+                    setupScrubber();
+
+                    // Proactively set transformer sample rate to the eventual playback rate if on iOS
+                    // Don't create AudioContext here - wait for user interaction
+                    // Just set the default sample rate for iOS
+                    if (isIOS) {
+                        // iOS typically uses 48000 Hz
+                        currentSampleRate = 48000;
+                        transformer.set_sample_rate(currentSampleRate);
+                        const srDisplay = document.getElementById('sample-rate-display');
+                        if (srDisplay) srDisplay.textContent = currentSampleRate.toLocaleString();
+                        updateTransformerStats();
+                    }
+                    
+                    // Successfully initialized
+                    console.log('WASM module initialized successfully');
+                    if (useAudioElement) {
+                        console.log('iOS mode enabled - using HTMLAudioElement for playback');
+                    }
+                    return;
+                } catch (error) {
+                    retryCount++;
+                    console.error(`WASM initialization attempt ${retryCount} failed:`, error);
+                    
+                    if (retryCount < maxRetries) {
+                        status.textContent = `Retrying initialization (${retryCount}/${maxRetries})...`;
+                        await new Promise(resolve => setTimeout(resolve, 1000));
+                    } else {
+                        status.textContent = 'Failed to initialize. Please reload the page.';
+                        generateBtn.disabled = true;
+                        isInitialized = false;
+                        console.error('Failed to initialize WASM after all retries');
+                    }
                 }
-            } catch (_) { /* ignore */ }
+            }
         }
 
         function updateTransformerStats() {
@@ -1946,10 +2247,16 @@
             
             if (isPlaying) {
                 // Pause
-                if (currentSource) {
+                if (useAudioElement && currentAudioElement) {
+                    currentAudioElement.pause();
+                    pausedAt = currentAudioElement.currentTime;
+                } else if (currentSource) {
                     currentSource.stop();
                     currentSource = null;
+                    // Calculate elapsed time for Web Audio API
+                    pausedAt = audioContext.currentTime - startTime;
                 }
+                
                 isPlaying = false;
                 playPauseIcon.textContent = '▶';
                 if (animationFrame) {
@@ -1957,9 +2264,15 @@
                 }
             } else {
                 // Play/Resume
-                const elapsed = parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
-                await ensureAudioContext();
-                await playFromPosition(elapsed);
+                if (useAudioElement && pausedAt !== undefined && pausedAt > 0) {
+                    await playFromPosition(pausedAt);
+                } else if (!useAudioElement) {
+                    const elapsed = pausedAt || parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
+                    await ensureAudioContext();
+                    await playFromPosition(elapsed);
+                } else {
+                    await playFromPosition(0);
+                }
                 playPauseIcon.textContent = '⏸';
             }
         }
@@ -1975,6 +2288,9 @@
             document.getElementById('scrubber-handle').style.left = `${progress}%`;
             document.getElementById('current-time').textContent = formatTime(elapsed);
             
+            // Update waveform playhead
+            drawWaveformPlayhead(progress);
+            
             if (elapsed < duration && isPlaying) {
                 animationFrame = requestAnimationFrame(updateScrubber);
             } else if (elapsed >= duration) {
@@ -1985,6 +2301,25 @@
                 // Re-enable generate button immediately after playback finishes
                 document.getElementById('generate-btn').disabled = false;
                 isGenerating = false;
+            }
+        }
+
+        function updateScrubberHTMLAudio() {
+            if (!isPlaying || !currentAudioElement) return;
+            
+            const elapsed = currentAudioElement.currentTime;
+            const duration = currentAudioElement.duration;
+            const progress = Math.min((elapsed / duration) * 100, 100);
+            
+            document.getElementById('scrubber-progress').style.width = `${progress}%`;
+            document.getElementById('scrubber-handle').style.left = `${progress}%`;
+            document.getElementById('current-time').textContent = formatTime(elapsed);
+            
+            // Update waveform playhead
+            drawWaveformPlayhead(progress);
+            
+            if (isPlaying && !currentAudioElement.paused && !currentAudioElement.ended) {
+                animationFrame = requestAnimationFrame(updateScrubberHTMLAudio);
             }
         }
 
@@ -2000,59 +2335,185 @@
                 const percentage = Math.max(0, Math.min(1, x / rect.width));
                 const seekTime = percentage * currentBuffer.duration;
                 
-                if (currentSource) {
-                    currentSource.stop();
+                // Stop current playback
+                if (useAudioElement && currentAudioElement) {
+                    currentAudioElement.pause();
+                    currentAudioElement = null;
+                } else if (currentSource) {
+                    try {
+                        currentSource.stop();
+                    } catch(e) {}
                     currentSource = null;
+                }
+                
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
                 }
                 
                 playFromPosition(seekTime);
             }
+            
+            // Touch events for mobile
+            let touchStartX = 0;
+            
+            handle.addEventListener('touchstart', (e) => {
+                isDragging = true;
+                touchStartX = e.touches[0].clientX;
+                e.preventDefault();
+            }, { passive: false });
             
             handle.addEventListener('mousedown', (e) => {
                 isDragging = true;
                 e.preventDefault();
             });
             
+            document.addEventListener('touchmove', (e) => {
+                if (isDragging && currentBuffer) {
+                    const rect = track.getBoundingClientRect();
+                    const x = e.touches[0].clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(1, x / rect.width));
+                    const seekTime = percentage * currentBuffer.duration;
+                    
+                    // Update UI immediately
+                    const progress = percentage * 100;
+                    document.getElementById('scrubber-progress').style.width = `${progress}%`;
+                    document.getElementById('scrubber-handle').style.left = `${progress}%`;
+                    document.getElementById('current-time').textContent = formatTime(seekTime);
+                }
+            }, { passive: false });
+            
             document.addEventListener('mousemove', (e) => {
-                if (isDragging) seek(e);
+                if (isDragging && currentBuffer) {
+                    const rect = track.getBoundingClientRect();
+                    const x = e.clientX - rect.left;
+                    const percentage = Math.max(0, Math.min(1, x / rect.width));
+                    const seekTime = percentage * currentBuffer.duration;
+                    
+                    // Update UI immediately
+                    const progress = percentage * 100;
+                    document.getElementById('scrubber-progress').style.width = `${progress}%`;
+                    document.getElementById('scrubber-handle').style.left = `${progress}%`;
+                    document.getElementById('current-time').textContent = formatTime(seekTime);
+                }
+            });
+            
+            document.addEventListener('touchend', (e) => {
+                if (isDragging && currentBuffer) {
+                    const rect = track.getBoundingClientRect();
+                    const x = touchStartX - rect.left;
+                    const percentage = Math.max(0, Math.min(1, x / rect.width));
+                    const seekTime = percentage * currentBuffer.duration;
+                    
+                    isDragging = false;
+                    playFromPosition(seekTime);
+                }
             });
             
             document.addEventListener('mouseup', () => {
-                isDragging = false;
+                if (isDragging && currentBuffer) {
+                    isDragging = false;
+                }
             });
             
             track.addEventListener('click', seek);
+            track.addEventListener('touchend', (e) => {
+                if (!isDragging && e.target === track) {
+                    seek(e.changedTouches[0]);
+                }
+            });
         }
 
         async function playFromPosition(startOffset) {
             if (!currentBuffer) return;
-            await ensureAudioContext();
             
-            currentSource = audioContext.createBufferSource();
-            currentSource.buffer = currentBuffer;
-            currentSource.connect(audioContext.destination);
-            currentSource.start(0, startOffset);
+            // Stop any existing playback
+            if (currentSource) {
+                try {
+                    currentSource.stop();
+                } catch(e) {}
+                currentSource = null;
+            }
+            if (currentAudioElement) {
+                currentAudioElement.pause();
+                currentAudioElement = null;
+            }
             
-            startTime = audioContext.currentTime - startOffset;
-            isPlaying = true;
-            
-            // Update play/pause button
-            document.getElementById('play-pause-icon').textContent = '⏸';
-            document.getElementById('play-pause-btn').disabled = false;
-            
-            currentSource.onended = () => {
-                if (audioContext.currentTime - startTime >= currentBuffer.duration - 0.1) {
+            if (useAudioElement) {
+                // Use HTMLAudioElement for iOS Safari (more reliable)
+                console.log('Using HTMLAudioElement for playback (iOS mode)');
+                const wavBlob = audioBufferToWavBlob(currentBuffer);
+                const audioUrl = URL.createObjectURL(wavBlob);
+                
+                currentAudioElement = new Audio(audioUrl);
+                currentAudioElement.currentTime = startOffset;
+                
+                // Add preload to ensure audio is ready
+                currentAudioElement.preload = 'auto';
+                
+                try {
+                    await currentAudioElement.play();
+                    console.log('Audio playback started successfully');
+                    startTime = Date.now() / 1000 - startOffset;
+                    isPlaying = true;
+                    
+                    // Update play/pause button
+                    document.getElementById('play-pause-icon').textContent = '⏸';
+                    document.getElementById('play-pause-btn').disabled = false;
+                    
+                    currentAudioElement.onended = () => {
+                        isPlaying = false;
+                        document.getElementById('play-pause-icon').textContent = '▶';
+                        document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
+                        document.getElementById('status').classList.remove('generating');
+                        document.getElementById('generate-btn').disabled = false;
+                        isGenerating = false;
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                    
+                    currentAudioElement.onerror = (e) => {
+                        console.error('Audio playback error:', e);
+                        isPlaying = false;
+                        document.getElementById('play-pause-icon').textContent = '▶';
+                        document.getElementById('status').textContent = 'Playback error - try generating again';
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                    
+                    updateScrubberHTMLAudio();
+                } catch (error) {
+                    console.error('Failed to play audio:', error);
+                    document.getElementById('status').textContent = 'Failed to play - tap to try again';
                     isPlaying = false;
-                    document.getElementById('play-pause-icon').textContent = '▶';
-                    document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
-                    document.getElementById('status').classList.remove('generating');
-                    // Re-enable generate button immediately
-                    document.getElementById('generate-btn').disabled = false;
-                    isGenerating = false;
+                    URL.revokeObjectURL(audioUrl);
                 }
-            };
-            
-            updateScrubber();
+            } else {
+                // Use Web Audio API for non-iOS browsers
+                await ensureAudioContext();
+                
+                currentSource = audioContext.createBufferSource();
+                currentSource.buffer = currentBuffer;
+                currentSource.connect(audioContext.destination);
+                currentSource.start(0, startOffset);
+                
+                startTime = audioContext.currentTime - startOffset;
+                isPlaying = true;
+                
+                // Update play/pause button
+                document.getElementById('play-pause-icon').textContent = '⏸';
+                document.getElementById('play-pause-btn').disabled = false;
+                
+                currentSource.onended = () => {
+                    if (audioContext.currentTime - startTime >= currentBuffer.duration - 0.1) {
+                        isPlaying = false;
+                        document.getElementById('play-pause-icon').textContent = '▶';
+                        document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
+                        document.getElementById('status').classList.remove('generating');
+                        document.getElementById('generate-btn').disabled = false;
+                        isGenerating = false;
+                    }
+                };
+                
+                updateScrubber();
+            }
         }
 
         function exportToWav() {
@@ -2121,23 +2582,30 @@
         }
 
         async function generateAndPlay() {
-            if (isGenerating || !transformer) return;
+            if (isGenerating || !transformer || !isInitialized) return;
             
             isGenerating = true;
             const button = document.getElementById('generate-btn');
             const status = document.getElementById('status');
             const scrubber = document.getElementById('time-scrubber');
-            
-            await ensureAudioContext();
 
+            // Clean up any existing playback
             if (currentSource) {
-                currentSource.stop();
+                try {
+                    currentSource.stop();
+                } catch(e) {}
                 currentSource = null;
+            }
+            if (currentAudioElement) {
+                currentAudioElement.pause();
+                currentAudioElement = null;
             }
             if (animationFrame) {
                 cancelAnimationFrame(animationFrame);
             }
             
+            pausedAt = 0;
+            isPlaying = false;
             scrubber.classList.remove('visible');
             button.disabled = true;
             status.textContent = 'Generating sequence...';
@@ -2157,7 +2625,14 @@
                 transformer.set_target_duration(currentTargetDuration);
                 
                 // Generate unique sequence each time (truly random)
+                console.log('Generating sequence with settings:', { tempo, melodic, randomSpacing, currentInstrument, currentSampleRate, currentTargetDuration });
                 const sequence = transformer.generate_sequence();
+                
+                if (!sequence || sequence.length === 0) {
+                    throw new Error('Failed to generate sequence - sequence is empty');
+                }
+                
+                console.log('Sequence generated:', sequence.length, 'notes');
                 
                 status.textContent = 'Neural network processing...';
                 await neuralViz.generateSequence(sequence);
@@ -2166,7 +2641,21 @@
                 
                 // Generate audio - duration is calculated from sequence length and tempo
                 const audioSamples = transformer.generate_audio();
+                
+                if (!audioSamples || audioSamples.length === 0) {
+                    throw new Error('Failed to generate audio - audio samples are empty');
+                }
+                
                 const duration = transformer.get_duration();
+                console.log('Audio generated:', audioSamples.length, 'samples, duration:', duration.toFixed(2), 's');
+                
+                // Create AudioBuffer for both playback modes
+                // Initialize AudioContext if needed (even for iOS we need it for the buffer)
+                if (!audioContext) {
+                    const Ctx = window.AudioContext || window.webkitAudioContext;
+                    audioContext = new Ctx();
+                }
+                
                 const targetRate = audioContext.sampleRate;
                 const samplesForPlayback = (currentSampleRate === targetRate)
                     ? audioSamples
@@ -2174,6 +2663,9 @@
                 currentBuffer = audioContext.createBuffer(1, samplesForPlayback.length, targetRate);
                 const channelData = currentBuffer.getChannelData(0);
                 channelData.set(samplesForPlayback);
+                
+                // Draw waveform visualization
+                drawWaveform(currentBuffer);
                 
                 // Update transformer stats with actual values
                 document.getElementById('stat-seq-length').textContent = sequence.length;
@@ -2303,8 +2795,32 @@
             }
         });
 
-        // Initialize
-        initApp();
+        // Redraw waveform on window resize
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (currentBuffer) {
+                    drawWaveform(currentBuffer);
+                    if (isPlaying) {
+                        const elapsed = useAudioElement ? 
+                            currentAudioElement.currentTime : 
+                            audioContext.currentTime - startTime;
+                        const duration = currentBuffer.duration;
+                        const progress = Math.min((elapsed / duration) * 100, 100);
+                        drawWaveformPlayhead(progress);
+                    }
+                }
+            }, 100);
+        });
+
+        // Initialize WASM immediately when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initApp);
+        } else {
+            // DOM is already loaded (module scripts are deferred)
+            initApp();
+        }
     </script>
 </body>
 </html>
