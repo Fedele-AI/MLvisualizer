@@ -923,6 +923,17 @@
                 margin-top: 24px;
             }
 
+            /* Make stats list single-column and tighten spacing on mobile */
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            .stat-item {
+                padding: 10px 12px;
+            }
+            .stat-label, .stat-value {
+                font-size: 0.95em;
+            }
+
             .stat-row {
                 font-size: 0.85em;
             }
@@ -1014,6 +1025,15 @@
                 width: 220px;
                 font-size: 0.7em;
             }
+
+            /* Stack label above value for very small screens to avoid right shift */
+            .stats-grid { grid-template-columns: 1fr; }
+            .stat-item {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+            .stat-value { width: 100%; text-align: left; }
         }
     </style>
 </head>
@@ -1414,6 +1434,7 @@
 
         let transformer = null;
         let audioContext = null;
+        let audioUnlocked = false;
         let isGenerating = false;
         let currentSource = null;
         let currentBuffer = null;
@@ -1425,6 +1446,57 @@
         let currentInstrument = 0; // 0 = Robo, 1 = Piano, 2 = Guitar
         let currentSampleRate = 44100;
         let currentTargetDuration = 12;
+
+        // Detect iOS (covers iPadOS with desktop UA)
+        const isIOS = (() => {
+            const ua = navigator.userAgent || '';
+            const platform = navigator.platform || '';
+            const iOSDevices = /iPad|iPhone|iPod/;
+            const iPadOSDesktopUA = platform === 'MacIntel' && navigator.maxTouchPoints > 1;
+            return iOSDevices.test(ua) || iPadOSDesktopUA;
+        })();
+
+        // Ensure an unlocked/running AudioContext exists (required by iOS Safari)
+        async function ensureAudioContext() {
+            const Ctx = window.AudioContext || window.webkitAudioContext;
+            if (!audioContext) {
+                audioContext = new Ctx();
+            }
+            try {
+                if (audioContext.state === 'suspended') {
+                    await audioContext.resume();
+                }
+            } catch (_) { /* no-op */ }
+
+            // Play one-frame silent buffer once to fully unlock on iOS
+            if (!audioUnlocked) {
+                try {
+                    const silent = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+                    const src = audioContext.createBufferSource();
+                    src.buffer = silent;
+                    src.connect(audioContext.destination);
+                    src.start(0);
+                    audioUnlocked = true;
+                } catch (_) { /* ignore */ }
+            }
+            return audioContext;
+        }
+
+        // Linear resampler to match generated audio to the AudioContext sample rate (iOS often enforces 48000Hz)
+        function resampleFloat32(input, fromRate, toRate) {
+            if (!input || fromRate === toRate) return input;
+            const ratio = toRate / fromRate;
+            const outLen = Math.max(1, Math.round(input.length * ratio));
+            const output = new Float32Array(outLen);
+            for (let i = 0; i < outLen; i++) {
+                const pos = i / ratio;
+                const i0 = Math.floor(pos);
+                const i1 = Math.min(i0 + 1, input.length - 1);
+                const frac = pos - i0;
+                output[i] = input[i0] * (1 - frac) + input[i1] * frac;
+            }
+            return output;
+        }
 
         class NeuralNetworkVisualizer {
             constructor(canvas) {
@@ -1811,7 +1883,6 @@
         async function initApp() {
             await init();
             transformer = new MusicTransformer();
-            audioContext = new (window.AudioContext || window.webkitAudioContext)();
             
             const canvas = document.getElementById('neural-canvas');
             neuralViz = new NeuralNetworkVisualizer(canvas);
@@ -1819,6 +1890,21 @@
             document.getElementById('status').textContent = 'Ready to generate music';
             updateTransformerStats();
             setupScrubber();
+
+            // Proactively set transformer sample rate to the eventual playback rate if on iOS
+            // (actual playback still resamples if user chooses a different rate)
+            try {
+                const tentativeCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const ctxRate = tentativeCtx.sampleRate;
+                await tentativeCtx.close();
+                if (isIOS) {
+                    currentSampleRate = ctxRate; // prefer device rate on iOS
+                    transformer.set_sample_rate(currentSampleRate);
+                    const srDisplay = document.getElementById('sample-rate-display');
+                    if (srDisplay) srDisplay.textContent = currentSampleRate.toLocaleString();
+                    updateTransformerStats();
+                }
+            } catch (_) { /* ignore */ }
         }
 
         function updateTransformerStats() {
@@ -1853,7 +1939,7 @@
             return `${mins}:${secs.toString().padStart(2, '0')}`;
         }
 
-        function togglePlayPause() {
+        async function togglePlayPause() {
             if (!currentBuffer) return;
             
             const playPauseIcon = document.getElementById('play-pause-icon');
@@ -1872,7 +1958,8 @@
             } else {
                 // Play/Resume
                 const elapsed = parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
-                playFromPosition(elapsed);
+                await ensureAudioContext();
+                await playFromPosition(elapsed);
                 playPauseIcon.textContent = '⏸';
             }
         }
@@ -1937,8 +2024,9 @@
             track.addEventListener('click', seek);
         }
 
-        function playFromPosition(startOffset) {
+        async function playFromPosition(startOffset) {
             if (!currentBuffer) return;
+            await ensureAudioContext();
             
             currentSource = audioContext.createBufferSource();
             currentSource.buffer = currentBuffer;
@@ -2040,6 +2128,8 @@
             const status = document.getElementById('status');
             const scrubber = document.getElementById('time-scrubber');
             
+            await ensureAudioContext();
+
             if (currentSource) {
                 currentSource.stop();
                 currentSource = null;
@@ -2066,14 +2156,6 @@
                 transformer.set_sample_rate(currentSampleRate);
                 transformer.set_target_duration(currentTargetDuration);
                 
-                // Recreate audio context with new sample rate if changed
-                if (audioContext.sampleRate !== currentSampleRate) {
-                    audioContext.close();
-                    audioContext = new (window.AudioContext || window.webkitAudioContext)({
-                        sampleRate: currentSampleRate
-                    });
-                }
-                
                 // Generate unique sequence each time (truly random)
                 const sequence = transformer.generate_sequence();
                 
@@ -2085,17 +2167,18 @@
                 // Generate audio - duration is calculated from sequence length and tempo
                 const audioSamples = transformer.generate_audio();
                 const duration = transformer.get_duration();
-                
-                currentBuffer = audioContext.createBuffer(1, audioSamples.length, currentSampleRate);
+                const targetRate = audioContext.sampleRate;
+                const samplesForPlayback = (currentSampleRate === targetRate)
+                    ? audioSamples
+                    : resampleFloat32(audioSamples, currentSampleRate, targetRate);
+                currentBuffer = audioContext.createBuffer(1, samplesForPlayback.length, targetRate);
                 const channelData = currentBuffer.getChannelData(0);
-                for (let i = 0; i < audioSamples.length; i++) {
-                    channelData[i] = audioSamples[i];
-                }
+                channelData.set(samplesForPlayback);
                 
                 // Update transformer stats with actual values
                 document.getElementById('stat-seq-length').textContent = sequence.length;
                 document.getElementById('stat-duration').textContent = duration.toFixed(2) + 's';
-                document.getElementById('stat-total-samples').textContent = audioSamples.length.toLocaleString();
+                document.getElementById('stat-total-samples').textContent = samplesForPlayback.length.toLocaleString();
                 
                 document.getElementById('total-time').textContent = formatTime(duration);
                 document.getElementById('current-time').textContent = '0:00';
@@ -2109,7 +2192,7 @@
                 button.disabled = false;
                 isGenerating = false;
                 
-                playFromPosition(0);
+                await playFromPosition(0);
                 
             } catch (error) {
                 console.error('Error generating music:', error);
@@ -2123,7 +2206,7 @@
         // Event listeners
         document.getElementById('generate-btn').addEventListener('click', generateAndPlay);
         document.getElementById('export-btn').addEventListener('click', exportToWav);
-        document.getElementById('play-pause-btn').addEventListener('click', togglePlayPause);
+    document.getElementById('play-pause-btn').addEventListener('click', togglePlayPause);
         
         const tempoSlider = document.getElementById('tempo');
         const tempoDisplay = document.getElementById('tempo-display');
@@ -2175,6 +2258,13 @@
                 updateTransformerStats();
             }
         });
+
+        // One-time global unlock on first user interaction (covers iOS Safari)
+        const unlockHandler = async () => {
+            await ensureAudioContext();
+        };
+        window.addEventListener('touchend', unlockHandler, { once: true, passive: true });
+        window.addEventListener('click', unlockHandler, { once: true });
 
         // Instrument selector
         document.querySelectorAll('.instrument-btn').forEach(btn => {
