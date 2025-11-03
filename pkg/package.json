@@ -1,0 +1,15 @@
+{
+  "name": "music-transformer",
+  "type": "module",
+  "version": "0.1.0",
+  "files": [
+    "music_transformer_bg.wasm",
+    "music_transformer.js",
+    "music_transformer.d.ts"
+  ],
+  "main": "music_transformer.js",
+  "types": "music_transformer.d.ts",
+  "sideEffects": [
+    "./snippets/*"
+  ]
+}
