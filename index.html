@@ -765,24 +765,15 @@
                 // Hide speech bubble
                 catSpeech.style.display = 'none';
                 
-                // Create and play bark sound
-                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                const oscillator = audioContext.createOscillator();
-                const gainNode = audioContext.createGain();
+                // Create and play bark sound from WAV file twice
+                const barkAudio = new Audio('src/dog-barking.wav');
+                barkAudio.play();
                 
-                oscillator.connect(gainNode);
-                gainNode.connect(audioContext.destination);
-                
-                // Bark sound effect (short, low frequency bursts)
-                oscillator.type = 'sawtooth';
-                oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
-                oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.1);
-                
-                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
-                
-                oscillator.start(audioContext.currentTime);
-                oscillator.stop(audioContext.currentTime + 0.15);
+                // Play the sound again after the first one finishes
+                barkAudio.addEventListener('ended', function() {
+                    const secondBark = new Audio('src/dog-barking.wav');
+                    secondBark.play();
+                }, { once: true });
                 
                 // Start the chase animation
                 catEgg.classList.add('cat-running');
