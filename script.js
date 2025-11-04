@@ -174,55 +174,257 @@ function showDemo(demoName) {
     setTimeout(() => {
         switch(demoName) {
             case 'perceptron':
-                if (perceptronViz) perceptronViz.resize();
-                else initPerceptron();
+                if (perceptronViz) {
+                    perceptronViz.resize();
+                    resetPerceptron();
+                } else {
+                    initPerceptron();
+                }
                 break;
             case 'rbm':
-                if (rbmViz) rbmViz.resize();
-                else initRBM();
+                if (rbmViz) {
+                    rbmViz.resize();
+                    resetRBM();
+                } else {
+                    initRBM();
+                }
                 break;
             case 'autoencoder':
-                if (aencoderViz) aencoderViz.resize();
-                else initAutoencoder();
+                if (aencoderViz) {
+                    aencoderViz.resize();
+                    resetAutoencoder();
+                } else {
+                    initAutoencoder();
+                }
                 break;
             case 'ising':
-                if (isingViz) isingViz.resize();
-                else initIsing();
+                if (isingViz) {
+                    isingViz.resize();
+                    resetIsing();
+                } else {
+                    initIsing();
+                }
                 break;
             case 'hopfield':
-                if (hopfieldViz) hopfieldViz.resize();
-                else initHopfield();
+                if (hopfieldViz) {
+                    hopfieldViz.resize();
+                    resetHopfield();
+                } else {
+                    initHopfield();
+                }
                 break;
             case 'transformer':
-                if (transformerViz) transformerViz.resize();
-                else initTransformer();
+                if (transformerViz) {
+                    transformerViz.resize();
+                    resetTransformer();
+                } else {
+                    initTransformer();
+                }
                 break;
             case 'deep-perceptron':
-                if (deepPerceptronViz) deepPerceptronViz.resize();
-                else initDeepPerceptron();
+                if (deepPerceptronViz) {
+                    deepPerceptronViz.resize();
+                    resetDeepPerceptron();
+                } else {
+                    initDeepPerceptron();
+                }
                 break;
             case 'normalizing-flow':
-                if (normalizingFlowViz) normalizingFlowViz.resize();
-                else initNormalizingFlow();
+                if (normalizingFlowViz) {
+                    normalizingFlowViz.resize();
+                    resetNormalizingFlow();
+                } else {
+                    initNormalizingFlow();
+                }
                 break;
             case 'vae':
-                if (vaeViz) vaeViz.resize();
-                else initVAE();
+                if (vaeViz) {
+                    vaeViz.resize();
+                    resetVAE();
+                } else {
+                    initVAE();
+                }
                 break;
             case 'cnn-encoder-decoder':
-                if (cnnViz) cnnViz.resize();
-                else initCNNEncoderDecoder();
+                if (cnnViz) {
+                    cnnViz.resize();
+                    resetCNN();
+                } else {
+                    initCNNEncoderDecoder();
+                }
                 break;
             case 'mamba2':
-                if (mamba2Viz) mamba2Viz.resize();
-                else initMamba2();
+                if (mamba2Viz) {
+                    mamba2Viz.resize();
+                    resetMamba2();
+                } else {
+                    initMamba2();
+                }
                 break;
             case 'cuda':
-                if (cudaViz) cudaViz.resize();
-                else initCUDA();
+                if (cudaViz) {
+                    cudaViz.resize();
+                    resetCUDA();
+                } else {
+                    initCUDA();
+                }
                 break;
         }
     }, 10);
+}
+
+// ====== Reset Functions for Each Demo ======
+function resetPerceptron() {
+    state.perceptron.running = false;
+    state.perceptron.epoch = 0;
+    if (perceptronViz) {
+        perceptronViz.currentSample = 0;
+        perceptronViz.setupNodes();
+        perceptronViz.generateTrainingData();
+        perceptronViz.draw();
+    }
+    const startBtn = document.getElementById('perceptron-start');
+    if (startBtn) startBtn.textContent = 'Start Training';
+}
+
+function resetRBM() {
+    state.rbm.running = false;
+    state.rbm.phase = 'idle';
+    state.rbm.animationProgress = 0;
+    if (rbmViz) {
+        rbmViz.setupNodes();
+        rbmViz.particles = [];
+        rbmViz.draw();
+    }
+    const startBtn = document.getElementById('rbm-start');
+    if (startBtn) startBtn.textContent = 'Start Training';
+}
+
+function resetAutoencoder() {
+    state.autoencoder.running = false;
+    state.autoencoder.phase = 'idle';
+    state.autoencoder.animationProgress = 0;
+    if (aencoderViz) {
+        aencoderViz.setupLayers();
+        aencoderViz.particles = [];
+        aencoderViz.draw();
+    }
+    const startBtn = document.getElementById('ae-start');
+    if (startBtn) startBtn.textContent = 'Start Encoding';
+}
+
+function resetIsing() {
+    state.ising.running = false;
+    if (isingViz) {
+        isingViz.initializeSpins();
+        isingViz.draw();
+    }
+    const startBtn = document.getElementById('ising-start');
+    if (startBtn) startBtn.textContent = 'Start Simulation';
+}
+
+function resetHopfield() {
+    state.hopfield.patterns = [];
+    state.hopfield.currentState = null;
+    if (hopfieldViz) {
+        hopfieldViz.initializeState();
+        hopfieldViz.patterns = [];
+        hopfieldViz.weights = [];
+        hopfieldViz.isRecalling = false;
+        hopfieldViz.draw();
+    }
+    const patternDisplay = document.getElementById('hopfield-patterns');
+    if (patternDisplay) patternDisplay.textContent = '0';
+}
+
+function resetTransformer() {
+    state.transformer.running = false;
+    state.transformer.phase = 'idle';
+    const input = document.getElementById('transformer-input');
+    if (input) input.value = '';
+    const list = document.getElementById('transformer-topk-list');
+    if (list) {
+        list.innerHTML = '<li style="text-align: center; color: #999; padding: 20px; font-style: italic;">Type a prompt and click "Predict next token" to see the magic! ✨</li>';
+    }
+    const appendBtn = document.getElementById('transformer-append');
+    if (appendBtn) appendBtn.disabled = true;
+    const charCounter = document.getElementById('char-counter');
+    if (charCounter) charCounter.textContent = '0/200';
+    if (transformerViz) {
+        transformerViz.draw();
+    }
+}
+
+function resetDeepPerceptron() {
+    state.deepPerceptron.running = false;
+    state.deepPerceptron.epoch = 0;
+    if (deepPerceptronViz) {
+        deepPerceptronViz.setupLayers();
+        deepPerceptronViz.particles = [];
+        deepPerceptronViz.draw();
+    }
+    const startBtn = document.getElementById('deep-start');
+    if (startBtn) startBtn.textContent = 'Start Training';
+}
+
+function resetNormalizingFlow() {
+    state.normalizingFlow.running = false;
+    state.normalizingFlow.phase = 'idle';
+    if (normalizingFlowViz) {
+        normalizingFlowViz.setupLayers();
+        normalizingFlowViz.particles = [];
+        normalizingFlowViz.draw();
+    }
+    const startBtn = document.getElementById('nf-start');
+    if (startBtn) startBtn.textContent = 'Start Flow';
+}
+
+function resetVAE() {
+    state.vae.running = false;
+    state.vae.phase = 'idle';
+    if (vaeViz) {
+        vaeViz.setupLayers();
+        vaeViz.particles = [];
+        vaeViz.draw();
+    }
+    const startBtn = document.getElementById('vae-start');
+    if (startBtn) startBtn.textContent = 'Start Encoding';
+}
+
+function resetCNN() {
+    state.cnnEncoderDecoder.running = false;
+    state.cnnEncoderDecoder.phase = 'idle';
+    if (cnnViz) {
+        cnnViz.setupMaps();
+        cnnViz.particles = [];
+        cnnViz.draw();
+    }
+    const startBtn = document.getElementById('cnn-start');
+    if (startBtn) startBtn.textContent = 'Process Image';
+}
+
+function resetMamba2() {
+    state.mamba2.running = false;
+    state.mamba2.phase = 'idle';
+    if (mamba2Viz) {
+        mamba2Viz.setupLayers();
+        mamba2Viz.particles = [];
+        mamba2Viz.draw();
+    }
+    const startBtn = document.getElementById('mamba2-start');
+    if (startBtn) startBtn.textContent = 'Process Sequence';
+}
+
+function resetCUDA() {
+    state.cuda.running = false;
+    state.cuda.phase = 'idle';
+    if (cudaViz) {
+        cudaViz.animationTime = 0;
+        cudaViz.setupArchitecture();
+        cudaViz.draw();
+    }
+    const startBtn = document.getElementById('cuda-start');
+    if (startBtn) startBtn.textContent = 'Launch Kernel';
 }
 
 // ====== Perceptron Visualization ======
@@ -457,13 +659,7 @@ function initPerceptron() {
         });
         
         document.getElementById('perceptron-reset').addEventListener('click', () => {
-            state.perceptron.running = false;
-            state.perceptron.epoch = 0;
-            perceptronViz.currentSample = 0;
-            perceptronViz.setupNodes();
-            perceptronViz.generateTrainingData();
-            perceptronViz.draw();
-            document.getElementById('perceptron-start').textContent = 'Start Training';
+            resetPerceptron();
         });
         
         document.getElementById('perceptron-speed').addEventListener('input', (e) => {
@@ -753,13 +949,7 @@ function initRBM() {
         });
         
         document.getElementById('rbm-reset').addEventListener('click', () => {
-            state.rbm.running = false;
-            state.rbm.phase = 'idle';
-            state.rbm.animationProgress = 0;
-            document.getElementById('rbm-start').textContent = 'Start Training';
-            rbmViz.setupNodes();
-            rbmViz.particles = [];
-            rbmViz.draw();
+            resetRBM();
         });
         
         document.getElementById('rbm-speed').addEventListener('input', (e) => {
@@ -1010,13 +1200,7 @@ function initAutoencoder() {
         });
         
         document.getElementById('ae-reset').addEventListener('click', () => {
-            state.autoencoder.running = false;
-            state.autoencoder.phase = 'idle';
-            state.autoencoder.animationProgress = 0;
-            document.getElementById('ae-start').textContent = 'Start Encoding';
-            aencoderViz.setupLayers();
-            aencoderViz.particles = [];
-            aencoderViz.draw();
+            resetAutoencoder();
         });
         
         document.getElementById('ae-speed').addEventListener('input', (e) => {
@@ -1158,10 +1342,7 @@ function initIsing() {
         });
         
         document.getElementById('ising-reset').addEventListener('click', () => {
-            state.ising.running = false;
-            isingViz.initializeSpins();
-            isingViz.draw();
-            document.getElementById('ising-start').textContent = 'Start Simulation';
+            resetIsing();
         });
         
         document.getElementById('ising-temp').addEventListener('input', (e) => {
@@ -1417,12 +1598,7 @@ function initHopfield() {
         });
         
         document.getElementById('hopfield-reset').addEventListener('click', () => {
-            hopfieldViz.initializeState();
-            hopfieldViz.patterns = [];
-            hopfieldViz.weights = [];
-            hopfieldViz.isRecalling = false;
-            hopfieldViz.draw();
-            document.getElementById('hopfield-patterns').textContent = '0';
+            resetHopfield();
         });
     }
     
@@ -2454,11 +2630,7 @@ function initDeepPerceptron() {
         });
         
         document.getElementById('deep-reset').addEventListener('click', () => {
-            state.deepPerceptron.running = false;
-            deepPerceptronViz.setupLayers();
-            deepPerceptronViz.particles = [];
-            deepPerceptronViz.draw();
-            document.getElementById('deep-start').textContent = 'Start Training';
+            resetDeepPerceptron();
         });
         
         document.getElementById('deep-speed').addEventListener('input', (e) => {
@@ -2670,11 +2842,7 @@ function initNormalizingFlow() {
         });
         
         document.getElementById('nf-reset').addEventListener('click', () => {
-            state.normalizingFlow.running = false;
-            normalizingFlowViz.setupLayers();
-            normalizingFlowViz.particles = [];
-            normalizingFlowViz.draw();
-            document.getElementById('nf-start').textContent = 'Start Flow';
+            resetNormalizingFlow();
         });
         
         document.getElementById('nf-speed').addEventListener('input', (e) => {
@@ -2887,11 +3055,7 @@ function initVAE() {
         });
         
         document.getElementById('vae-reset').addEventListener('click', () => {
-            state.vae.running = false;
-            vaeViz.setupLayers();
-            vaeViz.particles = [];
-            vaeViz.draw();
-            document.getElementById('vae-start').textContent = 'Start Encoding';
+            resetVAE();
         });
         
         document.getElementById('vae-speed').addEventListener('input', (e) => {
@@ -3151,11 +3315,7 @@ function initCNNEncoderDecoder() {
         });
         
         document.getElementById('cnn-reset').addEventListener('click', () => {
-            state.cnnEncoderDecoder.running = false;
-            cnnViz.setupMaps();
-            cnnViz.particles = [];
-            cnnViz.draw();
-            document.getElementById('cnn-start').textContent = 'Process Image';
+            resetCNN();
         });
         
         document.getElementById('cnn-speed').addEventListener('input', (e) => {
@@ -3379,11 +3539,7 @@ function initMamba2() {
         });
         
         document.getElementById('mamba2-reset').addEventListener('click', () => {
-            state.mamba2.running = false;
-            mamba2Viz.setupLayers();
-            mamba2Viz.particles = [];
-            mamba2Viz.draw();
-            document.getElementById('mamba2-start').textContent = 'Process Sequence';
+            resetMamba2();
         });
         
         document.getElementById('mamba2-speed').addEventListener('input', (e) => {
@@ -3872,11 +4028,7 @@ function initCUDA() {
         });
         
         document.getElementById('cuda-reset').addEventListener('click', () => {
-            state.cuda.running = false;
-            cudaViz.animationTime = 0;
-            cudaViz.setupArchitecture();
-            cudaViz.draw();
-            document.getElementById('cuda-start').textContent = 'Launch Kernel';
+            resetCUDA();
         });
         
         document.getElementById('cuda-speed').addEventListener('input', (e) => {
