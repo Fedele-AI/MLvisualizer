@@ -1459,13 +1459,39 @@ function buildToyLanguageModel() {
         'the dog chased the cat',
         'a cat likes fish',
         'a dog likes bones',
-        'the mat was soft',
-        'the rug was red',
-        'the cat slept',
-        'the dog barked',
+        'the mat was soft and comfortable',
+        'the rug was red and warm',
+        'the cat slept peacefully',
+        'the dog barked loudly',
         'cats and dogs are animals',
         'attention helps pick the next token',
-        'transformers predict the next token'
+        'transformers predict the next token',
+        'machine learning is fascinating',
+        'neural networks learn patterns',
+        'the model generates text',
+        'artificial intelligence is powerful',
+        'deep learning requires data',
+        'the algorithm processes information',
+        'language models understand context',
+        'the cat is sleeping now',
+        'the dog is running fast',
+        'machine learning models are trained',
+        'neural networks use backpropagation',
+        'the transformer uses attention',
+        'attention mechanisms are important',
+        'i love machine learning',
+        'i think neural networks',
+        'i like transformers',
+        'what is machine learning',
+        'what are neural networks',
+        'how does attention work',
+        'why use transformers',
+        'this is amazing',
+        'this model works',
+        'the sun is shining',
+        'the moon is bright',
+        'the sky is blue',
+        'the grass is green'
     ];
 
     for (const line of corpus) {
@@ -1522,28 +1548,70 @@ function predictNextTokens(prompt, temperature = 1.0, topK = 5) {
 function updateTransformerResults(preds) {
     const list = document.getElementById('transformer-topk-list');
     if (!list) return;
-    list.innerHTML = '';
-    preds.forEach(({ token, prob }, idx) => {
-        const li = document.createElement('li');
-        li.className = 'token-item';
-        const label = document.createElement('div');
-        label.className = 'token-label';
-        label.textContent = token;
-        const bar = document.createElement('div');
-        bar.className = 'token-bar';
-        const fill = document.createElement('div');
-        fill.className = 'token-bar-fill';
-        fill.style.width = `${(prob * 100).toFixed(1)}%`;
-        bar.appendChild(fill);
-        const pct = document.createElement('div');
-        pct.className = 'token-prob';
-        pct.textContent = `${(prob * 100).toFixed(1)}%`;
-        li.appendChild(label);
-        li.appendChild(bar);
-        li.appendChild(pct);
-        if (idx === 0) li.style.fontWeight = '700';
-        list.appendChild(li);
-    });
+    
+    // Fade out animation
+    list.style.opacity = '0';
+    list.style.transform = 'translateY(10px)';
+    
+    setTimeout(() => {
+        list.innerHTML = '';
+        
+        if (preds.length === 0) {
+            const emptyMsg = document.createElement('li');
+            emptyMsg.style.textAlign = 'center';
+            emptyMsg.style.color = '#999';
+            emptyMsg.style.padding = '20px';
+            emptyMsg.style.fontStyle = 'italic';
+            emptyMsg.textContent = 'Type something and click "Predict next token" to see predictions!';
+            list.appendChild(emptyMsg);
+        } else {
+            preds.forEach(({ token, prob }, idx) => {
+                const li = document.createElement('li');
+                li.className = 'token-item';
+                li.style.opacity = '0';
+                li.style.transform = 'translateX(-20px)';
+                
+                const label = document.createElement('div');
+                label.className = 'token-label';
+                label.textContent = token;
+                
+                const bar = document.createElement('div');
+                bar.className = 'token-bar';
+                
+                const fill = document.createElement('div');
+                fill.className = 'token-bar-fill';
+                fill.style.width = `${(prob * 100).toFixed(1)}%`;
+                bar.appendChild(fill);
+                
+                const pct = document.createElement('div');
+                pct.className = 'token-prob';
+                pct.textContent = `${(prob * 100).toFixed(1)}%`;
+                
+                li.appendChild(label);
+                li.appendChild(bar);
+                li.appendChild(pct);
+                
+                if (idx === 0) {
+                    li.style.fontWeight = '700';
+                    li.style.background = 'linear-gradient(135deg, #f8f9ff 0%, #eff1ff 100%)';
+                }
+                
+                list.appendChild(li);
+                
+                // Stagger the animation
+                setTimeout(() => {
+                    li.style.transition = 'all 0.4s ease';
+                    li.style.opacity = '1';
+                    li.style.transform = 'translateX(0)';
+                }, idx * 50);
+            });
+        }
+        
+        // Fade in
+        list.style.transition = 'all 0.3s ease';
+        list.style.opacity = '1';
+        list.style.transform = 'translateY(0)';
+    }, 150);
 }
 
 class TransformerVisualizer {
@@ -1628,7 +1696,7 @@ class TransformerVisualizer {
     }
 
     setTokens(tokens) {
-        this.tokens = (tokens && tokens.length ? tokens : ['']).map(t => String(t));
+        this.tokens = (tokens && tokens.length ? tokens : ['<start>']).map(t => String(t));
         this.attentionFocus = Math.max(0, this.tokens.length - 1);
         this.setupLayers();
         this.draw();
@@ -1637,7 +1705,48 @@ class TransformerVisualizer {
     setPredictions(preds) {
         this.predictions = preds || [];
         this.predictedTop = this.predictions.length ? this.predictions[0].token : null;
+        
+        // Trigger a brief animation when predictions change
+        if (this.predictions.length > 0) {
+            this.triggerPredictionAnimation();
+        }
         this.draw();
+    }
+    
+    triggerPredictionAnimation() {
+        // Flash the output layer
+        if (this.layers.length > 0) {
+            const outputLayer = this.layers[this.layers.length - 1];
+            outputLayer.forEach(node => {
+                node.targetActivation = 1.0;
+                setTimeout(() => {
+                    node.targetActivation = 0.7;
+                }, 200);
+            });
+        }
+        
+        // Create a burst of particles
+        for (let i = 0; i < 15; i++) {
+            setTimeout(() => {
+                if (this.layers.length >= 2) {
+                    const fromLayer = this.layers[this.layers.length - 2];
+                    const toLayer = this.layers[this.layers.length - 1];
+                    const idx = Math.floor(Math.random() * Math.min(fromLayer.length, toLayer.length));
+                    if (fromLayer[idx] && toLayer[idx]) {
+                        this.particles.push({
+                            x: fromLayer[idx].x,
+                            y: fromLayer[idx].y,
+                            targetX: toLayer[idx].x,
+                            targetY: toLayer[idx].y,
+                            progress: 0,
+                            life: 1,
+                            color: '#27AE60',
+                            isPrediction: true
+                        });
+                    }
+                }
+            }, i * 30);
+        }
     }
     
     update() {
@@ -1808,7 +1917,9 @@ class TransformerVisualizer {
             const x = p.x + (p.targetX - p.x) * this.easeInOutCubic(p.progress);
             const y = p.y + (p.targetY - p.y) * this.easeInOutCubic(p.progress);
             
-            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, 6);
+            // Prediction particles are larger and more prominent
+            const particleSize = p.isPrediction ? 8 : (p.isAttention ? 4 : 5);
+            const gradient = this.ctx.createRadialGradient(x, y, 0, x, y, particleSize + 2);
             
             // Convert hex color to RGB
             let rgb = '102, 126, 234'; // default
@@ -1820,13 +1931,23 @@ class TransformerVisualizer {
                 rgb = `${r}, ${g}, ${b}`;
             }
             
-            gradient.addColorStop(0, `rgba(${rgb}, ${p.life})`);
+            const alpha = p.isPrediction ? Math.min(1, p.life * 1.5) : p.life;
+            gradient.addColorStop(0, `rgba(${rgb}, ${alpha})`);
             gradient.addColorStop(1, `rgba(${rgb}, 0)`);
             
             this.ctx.fillStyle = gradient;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, p.isAttention ? 4 : 5, 0, Math.PI * 2);
+            this.ctx.arc(x, y, particleSize, 0, Math.PI * 2);
             this.ctx.fill();
+            
+            // Add glow effect for prediction particles
+            if (p.isPrediction) {
+                this.ctx.strokeStyle = `rgba(${rgb}, ${alpha * 0.3})`;
+                this.ctx.lineWidth = 2;
+                this.ctx.beginPath();
+                this.ctx.arc(x, y, particleSize + 2, 0, Math.PI * 2);
+                this.ctx.stroke();
+            }
         });
         
         // Draw nodes with token labels
@@ -1851,15 +1972,45 @@ class TransformerVisualizer {
         const phaseNames = ['Prompt', 'Context (self‑attention)', 'Scores', 'Softmax', 'Next token'];
         this.ctx.fillText(phaseNames[this.phase], this.canvas.width / 2, 25);
 
-        // Show top-1 predicted token near the output column
+        // Show top-1 predicted token near the output column with enhanced styling
         if (this.predictedTop) {
             const outputLayer = this.layers[this.layers.length - 1];
             if (outputLayer && outputLayer.length) {
                 const anchor = outputLayer[Math.min(outputLayer.length - 1, this.attentionFocus)];
+                
+                // Draw a rounded rectangle background
+                const text = `${this.predictedTop}`;
+                this.ctx.font = 'bold 16px monospace';
+                const textWidth = this.ctx.measureText(text).width;
+                const padding = 10;
+                const boxX = anchor.x + anchor.radius + 18;
+                const boxY = anchor.y - 12;
+                const boxWidth = textWidth + padding * 2;
+                const boxHeight = 28;
+                
+                // Background with shadow
+                this.ctx.shadowColor = 'rgba(39, 174, 96, 0.3)';
+                this.ctx.shadowBlur = 10;
                 this.ctx.fillStyle = '#27AE60';
-                this.ctx.font = 'bold 14px sans-serif';
+                this.ctx.beginPath();
+                this.ctx.roundRect(boxX, boxY, boxWidth, boxHeight, 6);
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+                
+                // Text
+                this.ctx.fillStyle = '#fff';
                 this.ctx.textAlign = 'left';
-                this.ctx.fillText(`→ ${this.predictedTop}`, anchor.x + anchor.radius + 12, anchor.y + 4);
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(text, boxX + padding, anchor.y + 1);
+                
+                // Arrow pointing to the box
+                this.ctx.fillStyle = '#27AE60';
+                this.ctx.beginPath();
+                this.ctx.moveTo(anchor.x + anchor.radius + 12, anchor.y);
+                this.ctx.lineTo(boxX - 6, anchor.y - 5);
+                this.ctx.lineTo(boxX - 6, anchor.y + 5);
+                this.ctx.closePath();
+                this.ctx.fill();
             }
         }
     }
@@ -1908,6 +2059,7 @@ function initTransformer() {
     // Initialize (static) visual for context, but focus on interactive next-token UI
     if (!transformerViz) {
         transformerViz = new TransformerVisualizer(canvas);
+        transformerViz.setTokens(['<start>']);
         transformerViz.draw();
     } else {
         transformerViz.resize();
@@ -1926,14 +2078,35 @@ function initTransformer() {
         const predictBtn = document.getElementById('transformer-predict');
         const appendBtn = document.getElementById('transformer-append');
         const clearBtn = document.getElementById('transformer-clear');
+        const charCounter = document.getElementById('char-counter');
 
         const doPredict = () => {
-            const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), parseInt(topkEl.value));
-            updateTransformerResults(preds);
-            // Update viz to reflect prompt and predicted top token
-            const displayTokens = (inputEl.value || '').trim().length ? inputEl.value.split(/\s+/) : [];
-            transformerViz.setTokens(displayTokens);
-            transformerViz.setPredictions(preds);
+            // Add loading state
+            predictBtn.disabled = true;
+            predictBtn.textContent = '🔮 Predicting...';
+            
+            // Small delay to show the loading state
+            setTimeout(() => {
+                const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), parseInt(topkEl.value));
+                updateTransformerResults(preds);
+                // Update viz to reflect prompt and predicted top token
+                const displayTokens = (inputEl.value || '').trim().length ? inputEl.value.split(/\s+/) : [];
+                transformerViz.setTokens(displayTokens);
+                transformerViz.setPredictions(preds);
+                
+                // Update append button to show what will be appended
+                if (preds.length > 0 && preds[0].token !== toyLM.eos) {
+                    appendBtn.textContent = `➕ Append "${preds[0].token}"`;
+                    appendBtn.disabled = false;
+                } else {
+                    appendBtn.textContent = '➕ Append top prediction';
+                    appendBtn.disabled = true;
+                }
+                
+                // Reset predict button
+                predictBtn.disabled = false;
+                predictBtn.textContent = '🔮 Predict next token';
+            }, 100);
         };
 
         tempEl.addEventListener('input', () => {
@@ -1953,6 +2126,13 @@ function initTransformer() {
             // Live update of the visualization to mirror prompt edits
             const displayTokens = (inputEl.value || '').trim().length ? inputEl.value.split(/\s+/) : [];
             transformerViz.setTokens(displayTokens);
+            
+            // Update character counter
+            if (charCounter) {
+                const len = inputEl.value.length;
+                charCounter.textContent = `${len}/200`;
+                charCounter.style.color = len > 150 ? '#e74c3c' : (len > 100 ? '#f39c12' : '#999');
+            }
         });
         appendBtn.addEventListener('click', () => {
             const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), 1);
@@ -1960,6 +2140,11 @@ function initTransformer() {
                 const tok = preds[0].token;
                 if (tok === toyLM.eos) return;
                 inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + tok;
+                
+                // Trigger input event to update counter
+                inputEl.dispatchEvent(new Event('input'));
+                
+                // Auto-predict after appending
                 doPredict();
             }
         });
@@ -1968,10 +2153,20 @@ function initTransformer() {
             updateTransformerResults([]);
             transformerViz.setTokens([]);
             transformerViz.setPredictions([]);
+            
+            // Reset character counter
+            if (charCounter) {
+                charCounter.textContent = '0/200';
+                charCounter.style.color = '#999';
+            }
+            
+            // Disable append button
+            appendBtn.textContent = '➕ Append top prediction';
+            appendBtn.disabled = true;
         });
         
-        // Initial predictions on empty prompt (from <s>)
-        doPredict();
+        // Initialize append button state
+        appendBtn.disabled = true;
     }
     
 }

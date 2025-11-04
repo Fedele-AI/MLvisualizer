@@ -397,7 +397,6 @@
         </section>
 
         <!-- Transformer Section -->
-                <!-- Transformer Section -->
         <section id="transformer" class="visualization-section">
             <div class="info-panel">
                 <h2>Transformer</h2>
@@ -409,32 +408,45 @@
                         <li><strong>Pick a token:</strong> Choose the most likely token (argmax) or sample using temperature/top-k</li>
                         <li><strong>Repeat:</strong> Append that token and predict the next one again — this is how generation works</li>
                         <li><strong>Under the hood:</strong> Self‑attention builds a context-aware representation to make that one prediction better</li>
-                        <li><strong>That’s it:</strong> Transformers are trained to be excellent next‑token predictors</li>
+                        <li><strong>That's it:</strong> Transformers are trained to be excellent next‑token predictors</li>
                     </ul>
+                    <div style="margin-top: 12px; padding: 12px; background: #f0f7ff; border-left: 4px solid #667eea; border-radius: 4px;">
+                        <strong>💡 Pro Tips:</strong>
+                        <ul style="margin: 8px 0 0 0; padding-left: 20px;">
+                            <li><strong>Temperature</strong> controls randomness: Low (0.2) = focused/repetitive, High (2.0) = creative/chaotic</li>
+                            <li><strong>Top-k</strong> limits choices: Lower = more predictable, Higher = more variety</li>
+                            <li>Try starting with phrases like "the cat", "machine learning", or "i think"</li>
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="controls">
-                    <label for="transformer-input">Your prompt</label>
-                    <input id="transformer-input" type="text" placeholder="Type a few words… e.g., 'the cat'">
+                    <label for="transformer-input" style="font-weight: 600; color: #333; margin-bottom: 8px; display: block;">Your prompt:</label>
+                    <div style="position: relative;">
+                        <input id="transformer-input" type="text" placeholder="Type a few words… e.g., 'the cat' or 'machine learning'" maxlength="200">
+                        <div id="char-counter" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%); font-size: 0.85em; color: #999; pointer-events: none;">0/200</div>
+                    </div>
                     <div class="control-row">
-                        <label>
-                            Temperature: <input type="range" id="transformer-temp" min="0.2" max="2.0" step="0.1" value="1.0">
-                            <span id="transformer-temp-display">1.0</span>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <span style="min-width: 100px;">Temperature:</span>
+                            <input type="range" id="transformer-temp" min="0.2" max="2.0" step="0.1" value="1.0">
+                            <span id="transformer-temp-display" style="min-width: 40px; font-weight: 700; color: #667eea;">1.0</span>
                         </label>
-                        <label>
-                            Top‑k: <input type="range" id="transformer-topk" min="1" max="10" step="1" value="5">
-                            <span id="transformer-topk-display">5</span>
+                        <label style="display: flex; align-items: center; gap: 8px;">
+                            <span style="min-width: 100px;">Top‑k:</span>
+                            <input type="range" id="transformer-topk" min="1" max="10" step="1" value="5">
+                            <span id="transformer-topk-display" style="min-width: 40px; font-weight: 700; color: #667eea;">5</span>
                         </label>
                     </div>
                     <div class="btn-row">
-                        <button id="transformer-predict" class="btn btn-primary">Predict next token</button>
-                        <button id="transformer-append" class="btn btn-secondary">Append top prediction</button>
-                        <button id="transformer-clear" class="btn btn-secondary">Clear</button>
+                        <button id="transformer-predict" class="btn btn-primary" title="Predict next token (or press Enter in the input)">🔮 Predict next token</button>
+                        <button id="transformer-append" class="btn btn-secondary" title="Add the top prediction to your prompt" disabled>➕ Append top prediction</button>
+                        <button id="transformer-clear" class="btn btn-secondary" title="Clear everything and start over">🗑️ Clear</button>
                     </div>
                 </div>
 
                 <p class="description">
-                    In practice, a Transformer takes the tokens you’ve typed and outputs a probability distribution over the next token. Pick one, append it, and repeat. Internally, self‑attention helps the model use relevant context to make that single step as accurate as possible. Chat, translation, and code generation are just this next‑token game played many times.
+                    In practice, a Transformer takes the tokens you've typed and outputs a probability distribution over the next token. This demo uses a simple bigram language model (it looks at the last word to predict the next one). Real transformers use self-attention to consider ALL previous tokens with different weights, making them much more powerful. Pick a predicted token, append it, and repeat - that's how chat, translation, and code generation work! Try typing a few words and watch the model predict what might come next based on patterns it learned from example sentences.
                 </p>
             </div>
 
@@ -448,8 +460,12 @@
                     <span class="label output-label">Next Token</span>
                 </div>
                 <div id="transformer-results" class="results">
-                    <div class="results-header">Top predictions</div>
-                    <ul id="transformer-topk-list" class="token-list"></ul>
+                    <div class="results-header">🎯 Top predictions</div>
+                    <ul id="transformer-topk-list" class="token-list">
+                        <li style="text-align: center; color: #999; padding: 20px; font-style: italic;">
+                            Type a prompt and click "Predict next token" to see the magic! ✨
+                        </li>
+                    </ul>
                 </div>
             </div>
         </section>
