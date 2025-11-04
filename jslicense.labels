@@ -1,0 +1,18 @@
+// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&dn=gpl-3.0.txt GPL-v3-or-Later
+
+script.js:
+    script.js
+    GPL-3.0-or-later
+    https://www.gnu.org/licenses/gpl-3.0.html
+
+neural-music.js:
+    neural-music.js
+    GPL-3.0-or-later
+    https://www.gnu.org/licenses/gpl-3.0.html
+
+pkg/music_transformer.js:
+    pkg/music_transformer.js
+    GPL-3.0-or-later
+    https://www.gnu.org/licenses/gpl-3.0.html
+
+// @license-end
