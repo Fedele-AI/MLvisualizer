@@ -187,6 +187,12 @@ impl MusicTransformer {
                     continue; // Skip rest notes in attention calculation
                 }
                 
+                // Ensure we don't access out of bounds in attention_weights
+                // Since we can add REST_NOTEs, sequence can be longer than sequence_length
+                if pos >= attention_weights.len() || prev_pos >= attention_weights[0].len() {
+                    continue; // Skip if indices would be out of bounds
+                }
+                
                 let attention = attention_weights[pos][prev_pos];
                 
                 // Favor consonant intervals
