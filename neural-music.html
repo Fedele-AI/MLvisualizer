@@ -42,13 +42,26 @@
     <!-- Mobile Warning Popup -->
     <div class="mobile-warning-popup" id="mobile-warning-popup">
         <div class="mobile-warning-content">
-            <div class="mobile-warning-icon"></div>
+            <div class="mobile-warning-icon">?</div>
             <h2>Mobile Warning</h2>
             <p><strong>This feature may still be buggy on mobile devices</strong> due to compute limitations.</p>
             <p>If you experience any issues, please refresh the page.</p>
+            <p>Please open an issue on <a href="https://github.com/Fedele-AI/MLvisualizer/issues" target="_blank" rel="noopener noreferrer">GitHub</a>.</p>
             <button class="mobile-warning-close" id="mobile-warning-close">Got it!</button>
         </div>
     </div>
+
+    <!-- No JavaScript Warning (Red X) -->
+    <noscript>
+        <div class="noscript-warning">
+            <div class="noscript-warning-content">
+                <div class="noscript-warning-icon"></div>
+                <h2>JavaScript Required</h2>
+                <p><strong>This site requires JavaScript to function.</strong></p>
+                <p>Please enable JavaScript in your browser settings to use this neural music generator.</p>
+            </div>
+        </div>
+    </noscript>
 
     <!-- WASM Loading Overlay -->
     <div class="wasm-loading-overlay" id="wasm-loading-overlay">

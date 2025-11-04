@@ -41,6 +41,10 @@ let currentInstrument = 0; // 0 = Robo, 1 = Piano, 2 = Guitar
 let currentSampleRate = 44100;
 let currentTargetDuration = 12;
 
+// Mobile-specific audio playback using HTMLAudioElement (more reliable on iOS)
+let mobileAudioElement = null;
+let mobileAudioBlobUrl = null;
+
 // Ensure an unlocked/running AudioContext exists
 async function ensureAudioContext() {
     const Ctx = window.AudioContext || window.webkitAudioContext;
@@ -86,7 +90,12 @@ function resampleFloat32(input, fromRate, toRate) {
 // Draw waveform visualization
 function drawWaveform(buffer) {
     const canvas = document.getElementById('waveform-canvas');
-    if (!canvas || !buffer) return;
+    if (!canvas || !buffer) {
+        console.warn('⚠️ Cannot draw waveform:', !canvas ? 'no canvas' : 'no buffer');
+        return;
+    }
+    
+    console.log('🎨 Drawing waveform for buffer with', buffer.length, 'samples');
     
     const ctx = canvas.getContext('2d');
     const rect = canvas.getBoundingClientRect();
@@ -837,6 +846,37 @@ async function togglePlayPause() {
     
     const playPauseIcon = document.getElementById('play-pause-icon');
     
+    // Use mobile-optimized playback on mobile devices (HTMLAudioElement instead of Web Audio API)
+    if (isMobileDevice() && mobileAudioElement) {
+        if (isPlaying) {
+            // Pause mobile audio
+            mobileAudioElement.pause();
+            pausedAt = mobileAudioElement.currentTime;
+            isPlaying = false;
+            playPauseIcon.textContent = '▶';
+            document.getElementById('status').textContent = 'Paused - Press play to resume';
+        } else {
+            // Play/Resume mobile audio
+            try {
+                // Set the starting position if resuming
+                if (pausedAt > 0) {
+                    mobileAudioElement.currentTime = pausedAt;
+                }
+                
+                await mobileAudioElement.play();
+                isPlaying = true;
+                playPauseIcon.textContent = '⏸';
+                document.getElementById('status').textContent = 'Playing...';
+                console.log('✅ Mobile audio playing from', mobileAudioElement.currentTime.toFixed(2), 's');
+            } catch (e) {
+                console.error('❌ Mobile audio play failed:', e);
+                document.getElementById('status').textContent = 'Playback error - try again';
+            }
+        }
+        return;
+    }
+    
+    // Desktop playback using Web Audio API
     if (isPlaying) {
         // Pause
         if (currentSource) {
@@ -850,10 +890,50 @@ async function togglePlayPause() {
         if (animationFrame) {
             cancelAnimationFrame(animationFrame);
         }
+        document.getElementById('status').textContent = 'Paused - Press play to resume';
     } else {
         // Play/Resume
         const elapsed = pausedAt || parseFloat(document.getElementById('current-time').textContent.split(':').reduce((acc, val) => acc * 60 + parseFloat(val), 0));
-        await ensureAudioContext();
+        
+        // CRITICAL for iOS Safari: Create/unlock AudioContext in direct response to user interaction
+        // Must happen here, not during generation
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!audioContext) {
+            audioContext = new Ctx();
+            console.log('📱 AudioContext created, state:', audioContext.state);
+        }
+        
+        // Resume if suspended or interrupted (iOS Safari states)
+        if (audioContext.state === 'suspended' || audioContext.state === 'interrupted') {
+            console.log('🔓 Resuming AudioContext from state:', audioContext.state);
+            try {
+                await audioContext.resume();
+                console.log('✅ AudioContext resumed, new state:', audioContext.state);
+            } catch (e) {
+                console.error('❌ Failed to resume AudioContext:', e);
+                document.getElementById('status').textContent = 'Audio error - try refreshing page';
+                return;
+            }
+        }
+        
+        // Unlock audio with silent buffer (iOS Safari requirement)
+        if (!audioUnlocked) {
+            try {
+                const silent = audioContext.createBuffer(1, 1, audioContext.sampleRate);
+                const src = audioContext.createBufferSource();
+                src.buffer = silent;
+                src.connect(audioContext.destination);
+                src.start(0);
+                audioUnlocked = true;
+                console.log('🔓 Audio unlocked via silent buffer');
+            } catch (e) {
+                console.warn('Failed to unlock audio:', e);
+            }
+        }
+        
+        // Update status to show we're playing
+        document.getElementById('status').textContent = 'Playing...';
+        
         await playFromPosition(elapsed);
         playPauseIcon.textContent = '⏸';
     }
@@ -898,7 +978,38 @@ function setupScrubber() {
         const percentage = Math.max(0, Math.min(1, x / rect.width));
         const seekTime = percentage * currentBuffer.duration;
         
+        // Handle mobile audio element differently
+        if (isMobileDevice() && mobileAudioElement) {
+            const wasPlaying = isPlaying;
+            
+            // Pause if playing
+            if (wasPlaying) {
+                mobileAudioElement.pause();
+                isPlaying = false;
+            }
+            
+            // Seek to new position
+            mobileAudioElement.currentTime = seekTime;
+            pausedAt = seekTime;
+            
+            // Update UI
+            const progress = percentage * 100;
+            document.getElementById('scrubber-progress').style.width = `${progress}%`;
+            document.getElementById('scrubber-handle').style.left = `${progress}%`;
+            document.getElementById('current-time').textContent = formatTime(seekTime);
+            
+            // Resume if was playing
+            if (wasPlaying) {
+                mobileAudioElement.play().then(() => {
+                    isPlaying = true;
+                }).catch(e => console.error('Failed to resume after seek:', e));
+            }
+            return;
+        }
+        
+        // Desktop Web Audio API playback
         // Stop current playback
+        const wasPlaying = isPlaying;
         if (currentSource) {
             try {
                 currentSource.stop();
@@ -910,7 +1021,20 @@ function setupScrubber() {
             cancelAnimationFrame(animationFrame);
         }
         
-        playFromPosition(seekTime);
+        // Update the paused position
+        pausedAt = seekTime;
+        isPlaying = false;
+        
+        // Update UI to show seek position
+        const progress = percentage * 100;
+        document.getElementById('scrubber-progress').style.width = `${progress}%`;
+        document.getElementById('scrubber-handle').style.left = `${progress}%`;
+        document.getElementById('current-time').textContent = formatTime(seekTime);
+        
+        // Only auto-play if we were already playing (respects iOS Safari requirements)
+        if (wasPlaying) {
+            playFromPosition(seekTime);
+        }
     }
     
     // Touch events for mobile
@@ -965,7 +1089,18 @@ function setupScrubber() {
             const seekTime = percentage * currentBuffer.duration;
             
             isDragging = false;
-            playFromPosition(seekTime);
+            pausedAt = seekTime;
+            
+            // Don't auto-play after dragging on mobile - let user press play button
+            // This ensures iOS Safari compatibility
+            isPlaying = false;
+            document.getElementById('play-pause-icon').textContent = '▶';
+            
+            // Update UI to show seek position
+            const progress = percentage * 100;
+            document.getElementById('scrubber-progress').style.width = `${progress}%`;
+            document.getElementById('scrubber-handle').style.left = `${progress}%`;
+            document.getElementById('current-time').textContent = formatTime(seekTime);
         }
     });
     
@@ -984,7 +1119,10 @@ function setupScrubber() {
 }
 
 async function playFromPosition(startOffset) {
-    if (!currentBuffer) return;
+    if (!currentBuffer) {
+        console.error('❌ No currentBuffer available');
+        return;
+    }
     
     // Stop any existing playback
     if (currentSource) {
@@ -994,22 +1132,77 @@ async function playFromPosition(startOffset) {
         currentSource = null;
     }
     
-    // Use Web Audio API for all browsers
-    await ensureAudioContext();
+    // Verify AudioContext exists and is running
+    if (!audioContext) {
+        console.error('❌ AudioContext not initialized');
+        document.getElementById('status').textContent = 'Audio error - press play again';
+        return;
+    }
     
-    currentSource = audioContext.createBufferSource();
-    currentSource.buffer = currentBuffer;
-    currentSource.connect(audioContext.destination);
-    currentSource.start(0, startOffset);
+    console.log('🎵 Starting playback:');
+    console.log('  - Offset:', startOffset.toFixed(2), 's');
+    console.log('  - AudioContext state:', audioContext.state);
+    console.log('  - AudioContext sample rate:', audioContext.sampleRate);
+    console.log('  - Buffer duration:', currentBuffer.duration.toFixed(2), 's');
+    console.log('  - Buffer length:', currentBuffer.length, 'samples');
+    console.log('  - Buffer sample rate:', currentBuffer.sampleRate);
+    
+    // CRITICAL: Ensure AudioContext is running before creating source
+    if (audioContext.state !== 'running') {
+        console.warn('⚠️ AudioContext not running, attempting to resume...');
+        try {
+            await audioContext.resume();
+            console.log('✅ AudioContext resumed to state:', audioContext.state);
+        } catch (e) {
+            console.error('❌ Failed to resume AudioContext:', e);
+            document.getElementById('status').textContent = 'Audio error - try again';
+            return;
+        }
+    }
+    
+    // Create and configure the audio source
+    try {
+        currentSource = audioContext.createBufferSource();
+        currentSource.buffer = currentBuffer;
+        
+        // Create a gain node for volume control and debugging
+        const gainNode = audioContext.createGain();
+        gainNode.gain.value = 1.0; // Full volume
+        
+        // Connect: source -> gain -> destination
+        currentSource.connect(gainNode);
+        gainNode.connect(audioContext.destination);
+        
+        console.log('✅ AudioBufferSourceNode created and connected');
+        console.log('  - Destination channels:', audioContext.destination.maxChannelCount);
+        console.log('  - Gain value:', gainNode.gain.value);
+        
+        // Start playback from the specified offset
+        currentSource.start(0, startOffset);
+        console.log('✅ Playback started at offset', startOffset.toFixed(2), 's');
+        
+    } catch (e) {
+        console.error('❌ Failed to start playback:', e);
+        console.error('  - Error name:', e.name);
+        console.error('  - Error message:', e.message);
+        document.getElementById('status').textContent = 'Playback failed - try refreshing page';
+        return;
+    }
     
     startTime = audioContext.currentTime - startOffset;
     isPlaying = true;
+    
+    console.log('✅ Playback state updated:');
+    console.log('  - isPlaying:', isPlaying);
+    console.log('  - startTime:', startTime.toFixed(2));
+    console.log('  - currentTime:', audioContext.currentTime.toFixed(2));
     
     // Update play/pause button
     document.getElementById('play-pause-icon').textContent = '⏸';
     document.getElementById('play-pause-btn').disabled = false;
     
     currentSource.onended = () => {
+        console.log('🎵 Source onended fired');
         if (audioContext.currentTime - startTime >= currentBuffer.duration - 0.1) {
             isPlaying = false;
             document.getElementById('play-pause-icon').textContent = '▶';
@@ -1127,6 +1320,17 @@ async function generateAndPlay() {
         cancelAnimationFrame(animationFrame);
     }
     
+    // Clean up mobile audio element
+    if (mobileAudioElement) {
+        mobileAudioElement.pause();
+        mobileAudioElement.src = '';
+        mobileAudioElement = null;
+    }
+    if (mobileAudioBlobUrl) {
+        URL.revokeObjectURL(mobileAudioBlobUrl);
+        mobileAudioBlobUrl = null;
+    }
+    
     pausedAt = 0;
     isPlaying = false;
     scrubber.classList.remove('visible');
@@ -1192,10 +1396,11 @@ async function generateAndPlay() {
         console.log('Audio generated:', audioSamples.length, 'samples, duration:', duration.toFixed(2), 's');
         
         // Create AudioBuffer for playback
-        // Initialize AudioContext if needed
+        // Initialize AudioContext if needed (but don't try to unlock it here - that requires user gesture)
         if (!audioContext) {
             const Ctx = window.AudioContext || window.webkitAudioContext;
             audioContext = new Ctx();
+            console.log('📱 AudioContext created, state:', audioContext.state);
         }
         
         const targetRate = audioContext.sampleRate;
@@ -1206,8 +1411,22 @@ async function generateAndPlay() {
         const channelData = currentBuffer.getChannelData(0);
         channelData.set(samplesForPlayback);
         
-        // Draw waveform visualization
-        drawWaveform(currentBuffer);
+        // Verify buffer has valid audio data
+        let hasSound = false;
+        for (let i = 0; i < Math.min(1000, channelData.length); i++) {
+            if (Math.abs(channelData[i]) > 0.001) {
+                hasSound = true;
+                break;
+            }
+        }
+        
+        console.log('✅ AudioBuffer created:', currentBuffer.length, 'samples,', currentBuffer.duration.toFixed(2), 's');
+        console.log('  - Has audible data:', hasSound);
+        console.log('  - First 10 samples:', Array.from(channelData.slice(0, 10)).map(v => v.toFixed(4)).join(', '));
+        
+        if (!hasSound) {
+            console.warn('⚠️ Warning: Buffer appears to contain silence!');
+        }
         
         // Update transformer stats with actual values
         document.getElementById('stat-seq-length').textContent = sequence.length;
@@ -1219,14 +1438,36 @@ async function generateAndPlay() {
         document.getElementById('scrubber-progress').style.width = '0%';
         document.getElementById('scrubber-handle').style.left = '0%';
         
-        status.textContent = 'Playing...';
+        status.textContent = 'Ready - Press play to listen';
+        
+        // Make scrubber visible BEFORE drawing waveform (canvas needs proper dimensions)
         scrubber.classList.add('visible');
+        
+        // Draw waveform visualization after scrubber is visible
+        console.log('🎨 Drawing waveform...');
+        // Small delay to ensure DOM has updated with new dimensions
+        requestAnimationFrame(() => {
+            drawWaveform(currentBuffer);
+            console.log('✅ Waveform drawn');
+        });
+        
+        // Setup mobile audio element for iOS Safari compatibility
+        if (isMobileDevice()) {
+            console.log('📱 Setting up mobile audio element for iOS compatibility...');
+            setupMobileAudio(currentBuffer);
+        }
         
         // Re-enable the generate button immediately so user can generate another while this is playing
         button.disabled = false;
         isGenerating = false;
         
-        await playFromPosition(0);
+        // Set to paused state - user must press play button to start playback
+        // This ensures iOS Safari allows audio playback (requires direct user interaction)
+        isPlaying = false;
+        pausedAt = 0;
+        document.getElementById('play-pause-icon').textContent = '▶';
+        document.getElementById('play-pause-btn').disabled = false;
+        status.classList.remove('generating');
         
     } catch (error) {
         console.error('Error generating music:', error);
@@ -1495,6 +1736,109 @@ function isMobileDevice() {
         || window.innerWidth <= 768;
 }
 
+// Create WAV file blob from AudioBuffer (for mobile playback)
+function createWavBlob(buffer) {
+    const numberOfChannels = 1;
+    const sampleRate = buffer.sampleRate;
+    const format = 1; // PCM
+    const bitDepth = 16;
+    
+    const channelData = buffer.getChannelData(0);
+    const samples = new Int16Array(channelData.length);
+    
+    // Convert float32 to int16
+    for (let i = 0; i < channelData.length; i++) {
+        const s = Math.max(-1, Math.min(1, channelData[i]));
+        samples[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    
+    const arrayBuffer = new ArrayBuffer(44 + samples.length * 2);
+    const view = new DataView(arrayBuffer);
+    
+    // WAV header
+    const writeString = (offset, string) => {
+        for (let i = 0; i < string.length; i++) {
+            view.setUint8(offset + i, string.charCodeAt(i));
+        }
+    };
+    
+    writeString(0, 'RIFF');
+    view.setUint32(4, 36 + samples.length * 2, true);
+    writeString(8, 'WAVE');
+    writeString(12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, format, true);
+    view.setUint16(22, numberOfChannels, true);
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * numberOfChannels * bitDepth / 8, true);
+    view.setUint16(32, numberOfChannels * bitDepth / 8, true);
+    view.setUint16(34, bitDepth, true);
+    writeString(36, 'data');
+    view.setUint32(40, samples.length * 2, true);
+    
+    // Write audio data
+    for (let i = 0; i < samples.length; i++) {
+        view.setInt16(44 + i * 2, samples[i], true);
+    }
+    
+    return new Blob([arrayBuffer], { type: 'audio/wav' });
+}
+
+// Setup mobile audio element for reliable iOS playback
+function setupMobileAudio(buffer) {
+    // Clean up existing audio element and blob URL
+    if (mobileAudioElement) {
+        mobileAudioElement.pause();
+        mobileAudioElement.src = '';
+        mobileAudioElement.remove();
+        mobileAudioElement = null;
+    }
+    if (mobileAudioBlobUrl) {
+        URL.revokeObjectURL(mobileAudioBlobUrl);
+        mobileAudioBlobUrl = null;
+    }
+    
+    // Create WAV blob from buffer
+    const wavBlob = createWavBlob(buffer);
+    mobileAudioBlobUrl = URL.createObjectURL(wavBlob);
+    
+    // Create audio element
+    mobileAudioElement = new Audio(mobileAudioBlobUrl);
+    mobileAudioElement.preload = 'auto';
+    
+    // Setup event handlers for mobile audio
+    mobileAudioElement.addEventListener('timeupdate', () => {
+        if (!isPlaying || !currentBuffer) return;
+        
+        const elapsed = mobileAudioElement.currentTime;
+        const duration = currentBuffer.duration;
+        const progress = Math.min((elapsed / duration) * 100, 100);
+        
+        document.getElementById('scrubber-progress').style.width = `${progress}%`;
+        document.getElementById('scrubber-handle').style.left = `${progress}%`;
+        document.getElementById('current-time').textContent = formatTime(elapsed);
+        drawWaveformPlayhead(progress);
+    });
+    
+    mobileAudioElement.addEventListener('ended', () => {
+        isPlaying = false;
+        document.getElementById('play-pause-icon').textContent = '▶';
+        document.getElementById('status').textContent = 'Playback complete - Ready to generate again';
+        document.getElementById('status').classList.remove('generating');
+        document.getElementById('generate-btn').disabled = false;
+        isGenerating = false;
+    });
+    
+    mobileAudioElement.addEventListener('error', (e) => {
+        console.error('❌ Mobile audio error:', e);
+        document.getElementById('status').textContent = 'Playback error - try regenerating';
+        isPlaying = false;
+        document.getElementById('play-pause-icon').textContent = '▶';
+    });
+    
+    console.log('✅ Mobile audio element created with WAV blob');
+}
+
 // Show mobile warning on page load if on mobile
 if (isMobileDevice()) {
     mobileWarningPopup.classList.add('active');
@@ -1519,7 +1863,10 @@ window.addEventListener('resize', () => {
         if (currentBuffer) {
             drawWaveform(currentBuffer);
             if (isPlaying) {
-                const elapsed = audioContext.currentTime - startTime;
+                // For mobile, use audio element time; for desktop, use AudioContext
+                const elapsed = (isMobileDevice() && mobileAudioElement) 
+                    ? mobileAudioElement.currentTime 
+                    : audioContext.currentTime - startTime;
                 const duration = currentBuffer.duration;
                 const progress = Math.min((elapsed / duration) * 100, 100);
                 drawWaveformPlayhead(progress);
