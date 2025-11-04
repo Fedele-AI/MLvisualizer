@@ -694,6 +694,114 @@
         </footer>
     </div>
 
+    <!-- Cat Easter Egg -->
+    <div id="cat-easter-egg" style="display: none; position: fixed; bottom: 20px; right: 20px; font-size: 80px; animation: cat-bounce 2s infinite; z-index: 10000; cursor: pointer;">
+        🐱
+    </div>
+    
+    <div id="cat-speech-bubble" style="display: none; position: fixed; bottom: 135px; right: 10px; background: white; color: black; padding: 10px 15px; border-radius: 15px; border: 2px solid #333; font-size: 16px; font-weight: bold; z-index: 10001; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        Wow, you found me!
+        <div style="position: absolute; bottom: -10px; right: 50px; width: 0; height: 0; border-left: 10px solid transparent; border-right: 10px solid transparent; border-top: 10px solid #333;"></div>
+        <div style="position: absolute; bottom: -8px; right: 51px; width: 0; height: 0; border-left: 9px solid transparent; border-right: 9px solid transparent; border-top: 9px solid white;"></div>
+    </div>
+    
+    <div id="dog-easter-egg" style="display: none; position: fixed; bottom: 20px; right: 20px; font-size: 80px; z-index: 9999;">
+        🐕
+    </div>
+
+    <style>
+        @keyframes cat-bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+        
+        @keyframes cat-run {
+            0% { right: 20px; }
+            100% { right: calc(100% + 100px); }
+        }
+        
+        @keyframes dog-chase {
+            0% { right: 20px; }
+            100% { right: calc(100% + 100px); }
+        }
+        
+        .cat-running {
+            animation: cat-run 3s linear forwards !important;
+        }
+        
+        .dog-chasing {
+            animation: dog-chase 3s linear forwards !important;
+        }
+    </style>
+
+    <script>
+        // Cat easter egg - Click info button 3 times to summon the cat
+        let infoClickCount = 0;
+        const catEgg = document.getElementById('cat-easter-egg');
+        const catSpeech = document.getElementById('cat-speech-bubble');
+        const dogEgg = document.getElementById('dog-easter-egg');
+        const infoButton = document.getElementById('info-button');
+        
+        infoButton.addEventListener('click', () => {
+            infoClickCount++;
+            
+            if (infoClickCount === 3) {
+                if (catEgg.style.display === 'none') {
+                    catEgg.style.display = 'block';
+                }
+                infoClickCount = 0; // Reset counter
+            }
+        });
+        
+        // Click the cat to show speech bubble, then hear a bark and watch the dog chase it
+        catEgg.addEventListener('click', () => {
+            // Show speech bubble
+            catSpeech.style.display = 'block';
+            
+            // After 2 seconds, start the chase
+            setTimeout(() => {
+                // Hide speech bubble
+                catSpeech.style.display = 'none';
+                
+                // Create and play bark sound
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                // Bark sound effect (short, low frequency bursts)
+                oscillator.type = 'sawtooth';
+                oscillator.frequency.setValueAtTime(100, audioContext.currentTime);
+                oscillator.frequency.exponentialRampToValueAtTime(50, audioContext.currentTime + 0.1);
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.15);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.15);
+                
+                // Start the chase animation
+                catEgg.classList.add('cat-running');
+                
+                // Dog appears and chases after a short delay
+                setTimeout(() => {
+                    dogEgg.style.display = 'block';
+                    dogEgg.classList.add('dog-chasing');
+                }, 200);
+                
+                // Hide both after animation completes
+                setTimeout(() => {
+                    catEgg.style.display = 'none';
+                    dogEgg.style.display = 'none';
+                    catEgg.classList.remove('cat-running');
+                    dogEgg.classList.remove('dog-chasing');
+                }, 3000);
+            }, 2000);
+        });
+    </script>
+
     <script src="script.js"></script>
 </body>
 </html>
