@@ -1,44 +1,59 @@
-# ML Visualizer
+# ML Visualizer 🤖
 
-A collection of interactive demonstrations of AI and machine learning architectures.
+<div align="center">
+
+[![Website](https://img.shields.io/badge/🌐_Website-mlvisualizer.org-667eea?style=for-the-badge)](https://mlvisualizer.org/)
+[![License](https://img.shields.io/badge/📄_License-GPL--3.0-blue?style=for-the-badge)](LICENSE.md)
+[![Made with Rust](https://img.shields.io/badge/🦀_Made_with-Rust-orange?style=for-the-badge)](https://www.rust-lang.org/)
+[![WebAssembly](https://img.shields.io/badge/⚡_WebAssembly-654FF0?style=for-the-badge&logo=webassembly&logoColor=white)](https://webassembly.org/)
+
+**Interactive demonstrations of AI and machine learning architectures**
+
+[🚀 Launch Demo](https://mlvisualizer.org/) • [📖 Documentation](#-learn-more) • [🎵 Music Transformer](#-neural-music-transformer-demo)
+
+</div>
+
+---
 
 ## 🎮 Usage
 
-1. Launch the visualizer by opening `index.html`, or open [https://mlvisualizer.org/](https://mlvisualizer.org/)
-2. Select a demo from the homepage
-3. Interact with the controls to adjust parameters
-4. Watch the neural network learn and adapt in real-time
+1. 🌐 **Launch** the visualizer by opening `index.html`, or visit **[mlvisualizer.org](https://mlvisualizer.org/)**
+2. 🎯 **Select** a demo from the homepage
+3. 🎛️ **Interact** with the controls to adjust parameters
+4. 👀 **Watch** the neural network learn and adapt in real-time
 
 ## 📚 Learn More
 
 Each demo includes:
-- 📊 Real-time visualizations
-- 🎛️ Interactive controls
-- 📈 Performance metrics
-- ℹ️ Educational descriptions
+- 📊 **Real-time visualizations** - Watch neural networks in action
+- 🎛️ **Interactive controls** - Adjust parameters and see immediate results
+- 📈 **Performance metrics** - Track learning progress and accuracy
+- 💡 **Educational descriptions** - Understand the theory behind each model
 
 ## 🛠️ Tech Stack
 
-- HTML5
-- CSS3
-- Vanilla JavaScript
-- Rust (compiled to WebAssembly)
+| Technology | Purpose |
+|------------|---------|
+| 🌐 **HTML5** | Structure & Markup |
+| 🎨 **CSS3** | Styling & Animations |
+| ⚡ **Vanilla JavaScript** | Interactive Visualizations |
+| 🦀 **Rust + WebAssembly** | High-Performance AI Audio Generation |
 
-## Neural Music Transformer Demo 
+## 🎵 Neural Music Transformer Demo 
 
 This project includes a real, working transformer-like sequence model implemented in Rust and compiled to WebAssembly for the browser. It uses an attention mechanism over previously generated notes to produce short melodic phrases, and then synthesizes audio samples on the fly.
 
 Important context:
 
-- It is a minimal, hand-crafted model for education and fun. There’s no training, no large parameter matrices, and no text tokens.
-- It does use attention over a sequence, so it’s “a real transformer” in spirit, but it’s tiny and domain-specific (8-note pentatonic scale + rests), nothing like the multi-billion-parameter models powering systems like ChatGPT.
-- Output is generated deterministically with small randomness from the browser’s `Math.random()`.
+- 🎓 **Educational Model**: A minimal, hand-crafted model for education and fun. There's no training, no large parameter matrices, and no text tokens.
+- 🔍 **Real Transformer**: It does use attention over a sequence, so it's "a real transformer" in spirit, but it's tiny and domain-specific (8-note pentatonic scale + rests), nothing like the multi-billion-parameter models powering systems like ChatGPT.
+- 🎲 **Deterministic Output**: Generated deterministically with small randomness from the browser's `Math.random()`.
 
 ### What it does
 
-- Generates a musical note sequence with simple attention: recent positions get higher weight, and consonant intervals are biased.
-- Optionally inserts rests to create phrases and supports different envelope “instruments”.
-- Converts the sequence to audio samples (Float32) you can play with the Web Audio API.
+- 🎼 Generates a musical note sequence with simple attention: recent positions get higher weight, and consonant intervals are biased
+- 🎹 Optionally inserts rests to create phrases and supports different envelope "instruments"
+- 🔊 Converts the sequence to audio samples (Float32) you can play with the Web Audio API
 
 ### Quick start (browser, ESM)
 
@@ -110,20 +125,36 @@ impl MusicTransformer {
 }
 ```
 
-Notes:
+**Notes:**
 
-- Sequence values of `999` represent rests (silence).
-- Instruments are simple envelopes/harmonics: `Robo` (synth), `Piano`, `Guitar`.
-- Attention weights emphasize nearby positions; “melodic” mode increases preference for small intervals.
+- 🔕 Sequence values of `999` represent rests (silence)
+- 🎸 Instruments are simple envelopes/harmonics: `Robo` (synth), `Piano`, `Guitar`
+- 🎯 Attention weights emphasize nearby positions; "melodic" mode increases preference for small intervals
 
-### How it differs from large LLMs
+### 🔬 How It Differs from Large LLMs
 
-- Scale: This is a few functions and tiny arrays running in your browser. LLMs like ChatGPT use billions of parameters on GPU/TPU clusters.
-- Training: This model is not trained; it’s rule-guided. LLMs are trained on massive datasets.
-- Modality: This model outputs notes and synthesized waveforms; LLMs operate on text tokens (and sometimes images/audio) using very large vocabularies.
+| Aspect | This Demo | Large LLMs (e.g., ChatGPT) |
+|--------|-----------|----------------------------|
+| 📏 **Scale** | A few functions and tiny arrays running in your browser | Billions of parameters on GPU/TPU clusters |
+| 🎓 **Training** | Not trained; rule-guided | Trained on massive datasets |
+| 🎭 **Modality** | Outputs notes and synthesized waveforms | Operates on text tokens (and sometimes images/audio) using very large vocabularies |
 
-This demo is designed to help you peek inside the mechanics—attention, sequencing, and synthesis—without the complexity of production-grade models.
+This demo is designed to help you peek inside the mechanics—**attention**, **sequencing**, and **synthesis**—without the complexity of production-grade models.
+
+---
+
+---
 
 ## 📄 License
 
-GNU General Public License v3.0. See `LICENSE.MD` for details.
+GNU General Public License v3.0 - See [`LICENSE.MD`](LICENSE.MD) for details.
+
+---
+
+<div align="center">
+
+**Built with ❤️ for CEE 4803 at Georgia Tech**
+
+🌟 [Star this repo](https://github.com/Fedele-AI/MLvisualizer) if you find it helpful!
+
+</div>
