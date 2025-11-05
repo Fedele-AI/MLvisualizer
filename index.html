@@ -289,6 +289,13 @@
 
             <!-- Perceptron Section -->
             <section id="perceptron" class="visualization-section">
+                <div class="canvas-container">
+                    <canvas id="perceptron-canvas"></canvas>
+                    <div class="layer-labels">
+                        <span class="label input-label">Input Features</span>
+                        <span class="label output-label">Output Decision</span>
+                    </div>
+                </div>
                 <div class="info-panel">
                     <h2>Perceptron</h2>
                     
@@ -323,18 +330,17 @@
                         <p><a href="https://psycnet.apa.org/record/1959-09865-001" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                     </div>
                 </div>
-
-                <div class="canvas-container">
-                    <canvas id="perceptron-canvas"></canvas>
-                    <div class="layer-labels">
-                        <span class="label input-label">Input Features</span>
-                        <span class="label output-label">Output Decision</span>
-                    </div>
-                </div>
             </section>
 
             <!-- RBM Section -->
         <section id="rbm" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="rbm-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label visible-label">Visible Layer</span>
+                    <span class="label hidden-label">Hidden Layer</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Restricted Boltzmann Machine (RBM)</h2>
                 
@@ -369,18 +375,20 @@
                     <p><a href="https://www.cs.toronto.edu/~rsalakhu/papers/rbmcf.pdf" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="rbm-canvas"></canvas>
-                <div class="layer-labels">
-                    <span class="label visible-label">Visible Layer</span>
-                    <span class="label hidden-label">Hidden Layer</span>
-                </div>
-            </div>
         </section>
 
         <!-- Autoencoder Section -->
         <section id="autoencoder" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="ae-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Input</span>
+                    <span class="label encoder-label">Encoder</span>
+                    <span class="label latent-label">Latent</span>
+                    <span class="label decoder-label">Decoder</span>
+                    <span class="label output-label">Output</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Autoencoder</h2>
                 
@@ -416,21 +424,17 @@
                     <p><a href="https://www.science.org/doi/10.1126/science.1127647" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="ae-canvas"></canvas>
-                <div class="layer-labels autoencoder-labels">
-                    <span class="label input-label">Input</span>
-                    <span class="label encoder-label">Encoder</span>
-                    <span class="label latent-label">Latent</span>
-                    <span class="label decoder-label">Decoder</span>
-                    <span class="label output-label">Output</span>
-                </div>
-            </div>
         </section>
 
         <!-- Ising Model Section -->
         <section id="ising" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="ising-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label visible-label">Temperature: <span id="ising-temp-display">2.27</span></span>
+                    <span class="label hidden-label">Energy: <span id="ising-energy-display">0</span></span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Ising Model</h2>
                 
@@ -469,18 +473,17 @@
                     <p><a href="https://link.springer.com/article/10.1007/BF02980577" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="ising-canvas"></canvas>
-                <div class="layer-labels">
-                    <span class="label visible-label">Temperature: <span id="ising-temp-display">2.27</span></span>
-                    <span class="label hidden-label">Energy: <span id="ising-energy-display">0</span></span>
-                </div>
-            </div>
         </section>
 
         <!-- Hopfield Network Section -->
         <section id="hopfield" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="hopfield-canvas"></canvas>
+                <div class="layer-labels">
+                    <span class="label input-label">Current State</span>
+                    <span class="label latent-label">Stored Patterns: <span id="hopfield-patterns">0</span></span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Hopfield Network</h2>
                 
@@ -518,18 +521,28 @@
                     <p><a href="https://www.pnas.org/doi/10.1073/pnas.79.8.2554" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="hopfield-canvas"></canvas>
-                <div class="layer-labels">
-                    <span class="label input-label">Current State</span>
-                    <span class="label latent-label">Stored Patterns: <span id="hopfield-patterns">0</span></span>
-                </div>
-            </div>
         </section>
 
         <!-- Transformer Section -->
         <section id="transformer" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="transformer-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label input-label">Prompt</span>
+                    <span class="label encoder-label">Context</span>
+                    <span class="label latent-label">Scores</span>
+                    <span class="label decoder-label">Softmax</span>
+                    <span class="label output-label">Next Token</span>
+                </div>
+                <div id="transformer-results" class="results">
+                    <div class="results-header">🎯 Top predictions</div>
+                    <ul id="transformer-topk-list" class="token-list">
+                        <li style="text-align: center; color: #999; padding: 20px; font-style: italic;">
+                            Type a prompt and click "Predict next token" to see the magic! ✨
+                        </li>
+                    </ul>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Transformer</h2>
                 
@@ -589,29 +602,20 @@
                     <p><a href="https://arxiv.org/abs/1706.03762" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="transformer-canvas"></canvas>
-                <div class="layer-labels autoencoder-labels">
-                    <span class="label input-label">Prompt</span>
-                    <span class="label encoder-label">Context</span>
-                    <span class="label latent-label">Scores</span>
-                    <span class="label decoder-label">Softmax</span>
-                    <span class="label output-label">Next Token</span>
-                </div>
-                <div id="transformer-results" class="results">
-                    <div class="results-header">🎯 Top predictions</div>
-                    <ul id="transformer-topk-list" class="token-list">
-                        <li style="text-align: center; color: #999; padding: 20px; font-style: italic;">
-                            Type a prompt and click "Predict next token" to see the magic! ✨
-                        </li>
-                    </ul>
-                </div>
-            </div>
         </section>
 
         <!-- Deep Perceptron Section -->
         <section id="deep-perceptron" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="deep-canvas"></canvas>
+                <div class="layer-labels deep-labels">
+                    <span class="label deep-input-label">INPUT</span>
+                    <span class="label deep-hidden-label">HIDDEN 1</span>
+                    <span class="label deep-hidden-label">HIDDEN 2</span>
+                    <span class="label deep-hidden-label">HIDDEN 3</span>
+                    <span class="label deep-output-label">OUTPUT</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Deep Perceptron (MLP)</h2>
                 
@@ -647,21 +651,20 @@
                     <p><a href="https://www.nature.com/articles/323533a0" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="deep-canvas"></canvas>
-                <div class="layer-labels deep-labels">
-                    <span class="label deep-input-label">INPUT</span>
-                    <span class="label deep-hidden-label">HIDDEN 1</span>
-                    <span class="label deep-hidden-label">HIDDEN 2</span>
-                    <span class="label deep-hidden-label">HIDDEN 3</span>
-                    <span class="label deep-output-label">OUTPUT</span>
-                </div>
-            </div>
         </section>
 
         <!-- Normalizing Flow Section -->
         <section id="normalizing-flow" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="nf-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label nf-base-label">Base Z</span>
+                    <span class="label nf-flow1-label">Flow 1</span>
+                    <span class="label nf-flow2-label">Flow 2</span>
+                    <span class="label nf-flow3-label">Flow 3</span>
+                    <span class="label nf-data-label">Data X</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Normalizing Flow</h2>
                 
@@ -697,21 +700,20 @@
                     <p><a href="https://arxiv.org/abs/1410.8516" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="nf-canvas"></canvas>
-                <div class="layer-labels autoencoder-labels">
-                    <span class="label nf-base-label">Base Z</span>
-                    <span class="label nf-flow1-label">Flow 1</span>
-                    <span class="label nf-flow2-label">Flow 2</span>
-                    <span class="label nf-flow3-label">Flow 3</span>
-                    <span class="label nf-data-label">Data X</span>
-                </div>
-            </div>
         </section>
 
         <!-- Variational Autoencoder Section -->
         <section id="vae" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="vae-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label vae-input-label">Input</span>
+                    <span class="label vae-encoder-label">μ, σ</span>
+                    <span class="label vae-latent-label">z ~ N(μ,σ)</span>
+                    <span class="label vae-encoder-label">Decoder</span>
+                    <span class="label vae-output-label">Output</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Variational Autoencoder (VAE)</h2>
                 
@@ -747,21 +749,20 @@
                     <p><a href="https://arxiv.org/abs/1312.6114" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="vae-canvas"></canvas>
-                <div class="layer-labels autoencoder-labels">
-                    <span class="label vae-input-label">Input</span>
-                    <span class="label vae-encoder-label">μ, σ</span>
-                    <span class="label vae-latent-label">z ~ N(μ,σ)</span>
-                    <span class="label vae-encoder-label">Decoder</span>
-                    <span class="label vae-output-label">Output</span>
-                </div>
-            </div>
         </section>
 
         <!-- CNN Encoder-Decoder Section -->
         <section id="cnn-encoder-decoder" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="cnn-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label cnn-input-label">Input</span>
+                    <span class="label cnn-conv-label">Conv↓</span>
+                    <span class="label cnn-latent-label">Features</span>
+                    <span class="label cnn-deconv-label">Conv↑</span>
+                    <span class="label cnn-output-label">Output</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>CNN Encoder-Decoder</h2>
                 
@@ -796,21 +797,20 @@
                     <p><a href="https://arxiv.org/abs/1505.04597" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="cnn-canvas"></canvas>
-                <div class="layer-labels autoencoder-labels">
-                    <span class="label cnn-input-label">Input</span>
-                    <span class="label cnn-conv-label">Conv↓</span>
-                    <span class="label cnn-latent-label">Features</span>
-                    <span class="label cnn-deconv-label">Conv↑</span>
-                    <span class="label cnn-output-label">Output</span>
-                </div>
-            </div>
         </section>
 
         <!-- Mamba2 Section -->
         <section id="mamba2" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="mamba2-canvas"></canvas>
+                <div class="layer-labels autoencoder-labels">
+                    <span class="label mamba2-input-label">Input</span>
+                    <span class="label mamba2-state-label">State</span>
+                    <span class="label mamba2-gate-label">Gates</span>
+                    <span class="label mamba2-state-label">Updated State</span>
+                    <span class="label mamba2-output-label">Output</span>
+                </div>
+            </div>
             <div class="info-panel">
                 <h2>Mamba2 Architecture</h2>
                 
@@ -848,21 +848,13 @@
                     <p><a href="https://arxiv.org/abs/2312.00752" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
             </div>
-
-            <div class="canvas-container">
-                <canvas id="mamba2-canvas"></canvas>
-                <div class="layer-labels autoencoder-labels">
-                    <span class="label mamba2-input-label">Input</span>
-                    <span class="label mamba2-state-label">State</span>
-                    <span class="label mamba2-gate-label">Gates</span>
-                    <span class="label mamba2-state-label">Updated State</span>
-                    <span class="label mamba2-output-label">Output</span>
-                </div>
-            </div>
         </section>
 
         <!-- CUDA Visualization Section -->
         <section id="cuda" class="visualization-section">
+            <div class="canvas-container">
+                <canvas id="cuda-canvas"></canvas>
+            </div>
             <div class="info-panel">
                 <h2>CUDA</h2>
                 
@@ -897,10 +889,6 @@
                     <p class="paper-venue">ACM Queue, 6(2), 40-53</p>
                     <p><a href="https://dl.acm.org/doi/10.1145/1365490.1365500" target="_blank" rel="noopener noreferrer">View Paper →</a></p>
                 </div>
-            </div>
-
-            <div class="canvas-container">
-                <canvas id="cuda-canvas"></canvas>
             </div>
         </section>
 

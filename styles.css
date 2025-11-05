@@ -573,9 +573,29 @@ header h1 {
 
 /* Desktop-only alignment and canvas sizing tweaks so demos fit inline */
 @media (min-width: 1025px) {
-    /* Avoid vertical centering that can clip content when animations run */
+    /* Switch to float-based layout so text can wrap under the diagram */
     .visualization-section.active {
-        align-items: start;
+        display: block;
+    }
+
+    /* Float the diagram right; allow text to flow alongside and then beneath */
+    .visualization-section.active .canvas-container {
+        float: right;
+        width: clamp(420px, 48%, 720px);
+        margin: 0 0 20px 24px;
+    }
+
+    /* Ensure the section establishes a new block formatting context and clears floats */
+    .visualization-section.active::after {
+        content: "";
+        display: block;
+        clear: both;
+    }
+
+    /* Let the info panel expand naturally without its own scrollbar */
+    .visualization-section.active .info-panel {
+        overflow: visible;
+        max-height: none;
     }
 
     /* Make key demo canvases taller on desktop so networks are fully visible */
