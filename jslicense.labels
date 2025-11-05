@@ -15,4 +15,9 @@ pkg/music_transformer.js:
     GPL-3.0-or-later
     https://www.gnu.org/licenses/gpl-3.0.html
 
+https://scripts.simpleanalyticscdn.com/latest.js:
+    https://scripts.simpleanalyticscdn.com/latest.js
+    MIT
+    https://github.com/simpleanalytics/scripts
+
 // @license-end
