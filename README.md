@@ -4,7 +4,7 @@ A collection of interactive demonstrations of AI and machine learning architectu
 
 ## 🎮 Usage
 
-1. Launch the visualizer by opening `index.html`, or open [fedele-ai.github.io/MLvisualizer](https://fedele-ai.github.io/MLvisualizer/)
+1. Launch the visualizer by opening `index.html`, or open [https://mlvisualizer.org/](https://mlvisualizer.org/)
 2. Select a demo from the homepage
 3. Interact with the controls to adjust parameters
 4. Watch the neural network learn and adapt in real-time
