@@ -4,9 +4,17 @@
     box-sizing: border-box;
 }
 
+/* Georgia Tech color palette */
+:root {
+    --color-primary: #B3A369;   /* Tech Gold */
+    --color-secondary: #003057; /* GT Navy */
+    --color-tertiary: #FFFFFF;  /* White */
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Page background: top (gold) → bottom (blue) */
+    background: linear-gradient(to bottom, var(--color-primary) 0%, var(--color-secondary) 100%);
     min-height: 100vh;
     padding: 20px;
     color: #333;
@@ -305,7 +313,8 @@ body:has(.demo-view.active) {
 }
 
 .hero {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Hero banner uses the same top (gold) → bottom (blue) gradient */
+    background: linear-gradient(to bottom, var(--color-primary) 0%, var(--color-secondary) 100%);
     color: white;
     padding: 80px 40px;
     text-align: center;

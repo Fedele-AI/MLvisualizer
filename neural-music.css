@@ -4,9 +4,17 @@
     box-sizing: border-box;
 }
 
+/* Georgia Tech color palette */
+:root {
+    --color-primary: #B3A369;   /* Tech Gold */
+    --color-secondary: #003057; /* GT Navy */
+    --color-tertiary: #FFFFFF;  /* White */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    /* Page background: top (gold) → bottom (blue) */
+    background: linear-gradient(to bottom, var(--color-primary) 0%, var(--color-secondary) 100%);
     min-height: 100vh;
     display: flex;
     justify-content: center;
