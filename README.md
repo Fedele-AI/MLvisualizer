@@ -111,18 +111,23 @@ impl MusicTransformer {
 		#[wasm_bindgen(constructor)]
 		pub fn new() -> MusicTransformer { /* init scale, defaults */ }
 
+		// Configuration setters
 		pub fn set_melodic(&mut self, melodic: bool);
 		pub fn set_random_spacing(&mut self, on: bool);
 		pub fn set_instrument(&mut self, instrument: InstrumentType);
-		pub fn set_tempo(&mut self, bpm: f32);
-		pub fn set_sample_rate(&mut self, rate: f32);
-		pub fn set_target_duration(&mut self, seconds: f32);
+		pub fn set_tempo(&mut self, bpm: f32);              // Clamped to [60, 240]
+		pub fn set_sample_rate(&mut self, rate: f32);       // Clamped to [22050, 48000]
+		pub fn set_target_duration(&mut self, seconds: f32); // Clamped to [5, 30]
 
-		// Generates a sequence of note indices (0..7) and rest marker 999
-		pub fn generate_sequence(&mut self) -> Vec<usize>;
+		// Configuration getters
+		pub fn get_sample_rate(&self) -> f32;
+		pub fn get_target_duration(&self) -> f32;
+		pub fn get_sequence(&self) -> Vec<usize>;           // Returns current sequence
+		pub fn get_duration(&self) -> f32;                  // Returns actual duration in seconds
 
-		// Renders mono audio samples for the current sequence
-		pub fn generate_audio(&self) -> Vec<f32>;
+		// Generation methods
+		pub fn generate_sequence(&mut self) -> Vec<usize>;  // Returns note indices (0..7) and rest marker 999
+		pub fn generate_audio(&self) -> Vec<f32>;           // Returns mono audio samples for current sequence
 }
 ```
 
