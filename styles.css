@@ -562,6 +562,47 @@ header h1 {
     gap: 40px;
 }
 
+/* Desktop-only alignment and canvas sizing tweaks so demos fit inline */
+@media (min-width: 1025px) {
+    /* Avoid vertical centering that can clip content when animations run */
+    .visualization-section.active {
+        align-items: start;
+    }
+
+    /* Make key demo canvases taller on desktop so networks are fully visible */
+    #autoencoder .canvas-container canvas,
+    #rbm .canvas-container canvas,
+    #normalizing-flow .canvas-container canvas,
+    #transformer .canvas-container canvas,
+    #deep-perceptron .canvas-container canvas,
+    #mamba2 .canvas-container canvas,
+    #hopfield .canvas-container canvas,
+    #ising .canvas-container canvas,
+    #perceptron .canvas-container canvas,
+    #vae .canvas-container canvas,
+    #cuda .canvas-container canvas {
+        height: 520px;
+        min-height: 520px;
+    }
+
+    /* Ensure the drawing area itself can grow as needed */
+    #autoencoder .canvas-container,
+    #rbm .canvas-container,
+    #normalizing-flow .canvas-container,
+    #transformer .canvas-container,
+    #deep-perceptron .canvas-container,
+    #mamba2 .canvas-container,
+    #hopfield .canvas-container,
+    #ising .canvas-container,
+    #perceptron .canvas-container,
+    #vae .canvas-container,
+    #cuda .canvas-container {
+        height: auto;
+        min-height: 560px; /* canvas + labels padding */
+        overflow: visible;
+    }
+}
+
 @media (max-width: 1024px) {
     .visualization-section.active {
         grid-template-columns: 1fr;

@@ -31,6 +31,17 @@ function debounce(func, wait) {
     };
 }
 
+// Smoothly scroll a demo canvas/section into view on desktop only
+function scrollIntoViewIfDesktop(elOrId, opts = { behavior: 'smooth', block: 'center' }) {
+    try {
+        if (!window.matchMedia || !window.matchMedia('(min-width: 1025px)').matches) return;
+        const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+        if (el && typeof el.scrollIntoView === 'function') {
+            el.scrollIntoView(opts);
+        }
+    } catch (_) { /* noop */ }
+}
+
 // ====== Global State ======
 const state = {
     currentView: 'homepage', // homepage or demo
@@ -652,6 +663,8 @@ function initPerceptron() {
         perceptronInitialized = true;
         
         document.getElementById('perceptron-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('perceptron-canvas');
             state.perceptron.running = !state.perceptron.running;
             document.getElementById('perceptron-start').textContent = 
                 state.perceptron.running ? 'Pause Training' : 'Start Training';
@@ -935,6 +948,8 @@ function initRBM() {
         rbmInitialized = true;
         
         document.getElementById('rbm-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('rbm-canvas');
             state.rbm.running = !state.rbm.running;
             const btn = document.getElementById('rbm-start');
             
@@ -1186,6 +1201,8 @@ function initAutoencoder() {
         aencoderInitialized = true;
         
         document.getElementById('ae-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('ae-canvas');
             state.autoencoder.running = !state.autoencoder.running;
             const btn = document.getElementById('ae-start');
             
@@ -1335,6 +1352,8 @@ function initIsing() {
         isingInitialized = true;
         
         document.getElementById('ising-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('ising-canvas');
             state.ising.running = !state.ising.running;
             document.getElementById('ising-start').textContent = 
                 state.ising.running ? 'Pause Simulation' : 'Start Simulation';
@@ -1582,11 +1601,15 @@ function initHopfield() {
         hopfieldInitialized = true;
         
         document.getElementById('hopfield-store').addEventListener('click', () => {
+            // Keep canvas in view while interacting (desktop only)
+            scrollIntoViewIfDesktop('hopfield-canvas');
             hopfieldViz.storePatterns();
             hopfieldViz.draw();
         });
         
         document.getElementById('hopfield-recall').addEventListener('click', () => {
+            // Keep canvas in view during recall animation (desktop only)
+            scrollIntoViewIfDesktop('hopfield-canvas');
             const noiseLevel = parseInt(document.getElementById('hopfield-noise').value);
             hopfieldViz.addNoise(noiseLevel);
             setTimeout(() => hopfieldViz.recall(), 500);
@@ -2257,6 +2280,8 @@ function initTransformer() {
         const charCounter = document.getElementById('char-counter');
 
         const doPredict = () => {
+            // Keep the visualization in view on desktop while interacting
+            scrollIntoViewIfDesktop('transformer-canvas', { behavior: 'smooth', block: 'center' });
             // Add loading state
             predictBtn.disabled = true;
             predictBtn.textContent = '🔮 Predicting...';
@@ -2623,6 +2648,8 @@ function initDeepPerceptron() {
         deepPerceptronInitialized = true;
         
         document.getElementById('deep-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('deep-canvas');
             state.deepPerceptron.running = !state.deepPerceptron.running;
             document.getElementById('deep-start').textContent = 
                 state.deepPerceptron.running ? 'Pause Training' : 'Start Training';
@@ -2835,6 +2862,8 @@ function initNormalizingFlow() {
         normalizingFlowInitialized = true;
         
         document.getElementById('nf-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('nf-canvas');
             state.normalizingFlow.running = !state.normalizingFlow.running;
             document.getElementById('nf-start').textContent = 
                 state.normalizingFlow.running ? 'Pause Flow' : 'Start Flow';
@@ -3048,6 +3077,8 @@ function initVAE() {
         vaeInitialized = true;
         
         document.getElementById('vae-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('vae-canvas');
             state.vae.running = !state.vae.running;
             document.getElementById('vae-start').textContent = 
                 state.vae.running ? 'Pause Encoding' : 'Start Encoding';
@@ -3532,6 +3563,8 @@ function initMamba2() {
         mamba2Initialized = true;
         
         document.getElementById('mamba2-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('mamba2-canvas');
             state.mamba2.running = !state.mamba2.running;
             document.getElementById('mamba2-start').textContent = 
                 state.mamba2.running ? 'Pause Processing' : 'Process Sequence';
@@ -4021,6 +4054,8 @@ function initCUDA() {
         cudaInitialized = true;
         
         document.getElementById('cuda-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('cuda-canvas');
             state.cuda.running = !state.cuda.running;
             document.getElementById('cuda-start').textContent = 
                 state.cuda.running ? 'Pause Kernel' : 'Launch Kernel';
