@@ -52,6 +52,7 @@
 
     <!-- No JavaScript Warning (Red X) -->
     <noscript>
+        <style>#wasm-loading-overlay{display:none !important;}</style>
         <div class="noscript-warning">
             <div class="noscript-warning-content">
                 <div class="noscript-warning-icon"></div>
@@ -63,7 +64,7 @@
     </noscript>
 
     <!-- WASM Loading Overlay -->
-    <div class="wasm-loading-overlay" id="wasm-loading-overlay">
+    <div class="wasm-loading-overlay active" id="wasm-loading-overlay">
         <div class="wasm-loading-content">
             <div class="wasm-spinner"></div>
             <h2>Initializing Neural Network</h2>

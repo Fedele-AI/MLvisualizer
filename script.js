@@ -31,6 +31,42 @@ function debounce(func, wait) {
     };
 }
 
+// Mobile viewport-aware resize guard to prevent thrashing on scroll (address bar hide/show)
+let _lastViewport = { w: 0, h: 0 };
+function isMobileViewport() {
+    try {
+        return (window.matchMedia && window.matchMedia('(max-width: 1024px)').matches) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+    } catch (_) { return true; }
+}
+
+function shouldHandleResize() {
+    const w = window.innerWidth || document.documentElement.clientWidth;
+    const h = window.innerHeight || document.documentElement.clientHeight;
+
+    // Always allow the very first call
+    if (_lastViewport.w === 0 && _lastViewport.h === 0) {
+        _lastViewport = { w, h };
+        return true;
+    }
+
+    // On desktop, always handle
+    if (!isMobileViewport()) {
+        _lastViewport = { w, h };
+        return true;
+    }
+
+    // On mobile, ignore height-only fluctuations from browser UI unless large
+    const widthChanged = Math.abs(w - _lastViewport.w) > 4;
+    const heightChangedSignificant = Math.abs(h - _lastViewport.h) > 120;
+    const orientationChanged = (w > h) !== (_lastViewport.w > _lastViewport.h);
+
+    if (widthChanged || heightChangedSignificant || orientationChanged) {
+        _lastViewport = { w, h };
+        return true;
+    }
+    return false;
+}
+
 // Smoothly scroll a demo canvas/section into view on desktop only
 function scrollIntoViewIfDesktop(elOrId, opts = { behavior: 'smooth', block: 'center' }) {
     try {
@@ -79,7 +115,7 @@ const state = {
     },
     deepPerceptron: {
         running: false,
-        speed: 1.5,
+        speed: 5,
         epoch: 0
     },
     normalizingFlow: {
@@ -453,11 +489,12 @@ class PerceptronVisualizer {
         this.trainingData = [];
         this.currentSample = 0;
         
-        this.resize();
+        this.resize(true);
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -656,7 +693,7 @@ function initPerceptron() {
     if (!perceptronViz) {
         perceptronViz = new PerceptronVisualizer(canvas);
     } else {
-        perceptronViz.resize();
+        perceptronViz.resize(true);
     }
     
     if (!perceptronInitialized) {
@@ -706,11 +743,12 @@ class RBMVisualizer {
         this.connections = [];
         this.particles = [];
         
-        this.resize();
+        this.resize(true);
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -769,11 +807,12 @@ class RBMVisualizer {
         }
     }
     
-    update() {
+    update(dtFrames = 1, speed = (typeof state !== 'undefined' && state.rbm ? state.rbm.speed : 3)) {
         if (!state.rbm.running) return;
         
-        const speed = state.rbm.speed / 500; // Reduced from 100 to 500 for slower animation
-        state.rbm.animationProgress += speed;
+        const speedFactor = Math.max(0.25, speed / 3);
+        // Time-scaled phase progress
+        state.rbm.animationProgress += 0.01 * dtFrames * speedFactor;
         
         // Cycle through phases
         if (state.rbm.animationProgress >= 1) {
@@ -813,8 +852,8 @@ class RBMVisualizer {
             });
         }
         
-        // Create particles
-        if (Math.random() < 0.3) {
+        // Create particles (time-scaled probability)
+        if (Math.random() < 0.3 * Math.min(3, dtFrames) * speedFactor) {
             const sourceNodes = state.rbm.phase === 'forward' ? this.visibleNodes : this.hiddenNodes;
             const targetNodes = state.rbm.phase === 'forward' ? this.hiddenNodes : this.visibleNodes;
             
@@ -831,10 +870,10 @@ class RBMVisualizer {
             });
         }
         
-        // Update particles - slower movement for better visibility
+        // Update particles - slower movement for better visibility (time-scaled)
         this.particles = this.particles.filter(p => {
-            p.progress += speed * 0.8; // Reduced from 2 to 0.8
-            p.life -= speed * 0.2; // Reduced from 0.5 to 0.2
+            p.progress += 0.06 * dtFrames * speedFactor;
+            p.life -= 0.015 * dtFrames;
             return p.life > 0 && p.progress < 1;
         });
     }
@@ -941,7 +980,7 @@ function initRBM() {
     if (!rbmViz) {
         rbmViz = new RBMVisualizer(canvas);
     } else {
-        rbmViz.resize();
+        rbmViz.resize(true);
     }
     
     if (!rbmInitialized) {
@@ -975,10 +1014,16 @@ function initRBM() {
     rbmViz.draw();
 }
 
-function animateRBM() {
+let rbmLastTime = 0;
+function animateRBM(currentTime = 0) {
     if (!state.rbm.running || state.currentDemo !== 'rbm') return;
-    
-    rbmViz.update();
+    const frameMs = 1000 / 60;
+    let dtFrames = 1;
+    if (rbmLastTime) {
+        dtFrames = Math.max(0.5, Math.min(3, (currentTime - rbmLastTime) / frameMs));
+    }
+    rbmLastTime = currentTime;
+    rbmViz.update(dtFrames, state.rbm.speed);
     rbmViz.draw();
     requestAnimationFrame(animateRBM);
 }
@@ -993,11 +1038,12 @@ class AutoencoderVisualizer {
         this.layers = [];
         this.particles = [];
         
-        this.resize();
+        this.resize(true);
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -1194,7 +1240,7 @@ function initAutoencoder() {
     if (!aencoderViz) {
         aencoderViz = new AutoencoderVisualizer(canvas);
     } else {
-        aencoderViz.resize();
+        aencoderViz.resize(true);
     }
     
     if (!aencoderInitialized) {
@@ -1249,11 +1295,12 @@ class IsingVisualizer {
         this.temperature = 2.27; // Critical temperature
         this.energy = 0;
         
-        this.resize();
+        this.resize(true);
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -1345,7 +1392,7 @@ function initIsing() {
     if (!isingViz) {
         isingViz = new IsingVisualizer(canvas);
     } else {
-        isingViz.resize();
+        isingViz.resize(true);
     }
     
     if (!isingInitialized) {
@@ -1398,15 +1445,16 @@ class HopfieldVisualizer {
         this.size = 15; // 15x15 grid
         this.state = [];
         this.weights = [];
-        this.patterns = [];
+        this.dataFlowTimer = 0; // measured in 60fps frames
         this.isRecalling = false;
         
-        this.resize();
+        this.resize(true);
         window.addEventListener('resize', debounce(() => this.resize(), 250));
         this.setupMouseInteraction();
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -1594,7 +1642,7 @@ function initHopfield() {
     if (!hopfieldViz) {
         hopfieldViz = new HopfieldVisualizer(canvas);
     } else {
-        hopfieldViz.resize();
+        hopfieldViz.resize(true);
     }
     
     if (!hopfieldInitialized) {
@@ -1828,12 +1876,13 @@ class TransformerVisualizer {
         this.predictions = [];
         this.predictedTop = null;
         
-        this.resize();
+        this.resize(true);
         this.setupLayers();
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -2261,7 +2310,7 @@ function initTransformer() {
         transformerViz.setTokens(['<start>']);
         transformerViz.draw();
     } else {
-        transformerViz.resize();
+        transformerViz.resize(true);
         transformerViz.draw();
     }
 
@@ -2393,11 +2442,12 @@ class DeepPerceptronVisualizer {
         this.currentLayer = 0;
         this.layerProgress = 0;
         this.cycleProgress = 0;
-        this.resize();
+        this.resize(true);
         window.addEventListener('resize', debounce(() => this.resize(), 250));
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         const rect = this.canvas.getBoundingClientRect();
         this.canvas.width = rect.width;
         this.canvas.height = rect.height;
@@ -2435,56 +2485,29 @@ class DeepPerceptronVisualizer {
         });
     }
     
-    update() {
+    update(dtFrames = 1, speed = (typeof state !== 'undefined' && state.deepPerceptron ? state.deepPerceptron.speed : 3)) {
         if (!this.layers || this.layers.length === 0) return;
         
-        const speed = state.deepPerceptron.speed || 3;
+        const speedFactor = Math.max(0.25, speed / 3);
         
-        // Smooth activation interpolation
+        // Smooth activation interpolation (time-scaled)
         this.layers.forEach(layer => {
             if (!layer) return;
             layer.forEach(node => {
                 if (!node) return;
                 const diff = (node.targetActivation || 0) - (node.activation || 0);
-                node.activation = (node.activation || 0) + diff * 0.15;
+                node.activation = (node.activation || 0) + diff * (0.15 * Math.min(2, dtFrames));
             });
         });
         
-        // Linear cycle progress (slowed down)
-        this.cycleProgress += 0.002 * speed;
-        
-        // Reset cycle after completing all layers
-        if (this.cycleProgress >= 1.0) {
-            this.cycleProgress = 0;
-            this.currentLayer = 0;
-            this.layerProgress = 0;
-            
-            // Clear particles
-            this.particles = [];
-            
-            // Reset all nodes
-            this.layers.forEach(layer => {
-                if (!layer) return;
-                layer.forEach(node => {
-                    if (!node) return;
-                    node.activation = 0;
-                    node.targetActivation = 0;
-                });
-            });
-            
-            // Activate input layer
-            if (this.layers[0]) {
-                this.layers[0].forEach(node => {
-                    if (node) node.targetActivation = 0.8 + Math.random() * 0.2;
-                });
-            }
-            return;
-        }
+        // Linear cycle progress (time-scaled)
+        this.cycleProgress += 0.002 * dtFrames * speedFactor;
         
         // Determine which layer should be processing
-        const totalLayers = this.layers.length;
-        const layerDuration = 1.0 / totalLayers;
-        const targetLayer = Math.min(totalLayers - 1, Math.floor(this.cycleProgress / layerDuration));
+    const totalLayers = this.layers.length;
+    const layerDuration = 1.0 / totalLayers;
+    const rawTargetLayer = Math.min(totalLayers - 1, Math.floor(this.cycleProgress / layerDuration));
+    const targetLayer = Math.min(this.currentLayer + 1, rawTargetLayer);
         
         // Smoothly transition between layers
         if (targetLayer !== this.currentLayer && targetLayer < totalLayers) {
@@ -2532,13 +2555,65 @@ class DeepPerceptronVisualizer {
             this.currentLayer = targetLayer;
         }
         
-        // Update particles smoothly
+        // Continuous low-rate emission while a layer is active
+        if (this.currentLayer < totalLayers - 1) {
+            const sourceLayer = this.layers[this.currentLayer];
+            const nextLayer = this.layers[this.currentLayer + 1];
+            const spawnChance = 0.15 * Math.min(3, dtFrames) * speedFactor;
+            if (Math.random() < spawnChance) {
+                const activeSources = sourceLayer.filter(n => (n && (n.activation || 0) > 0.2));
+                if (activeSources.length > 0) {
+                    const sourceNode = activeSources[Math.floor(Math.random() * activeSources.length)];
+                    const targetNode = nextLayer[Math.floor(Math.random() * nextLayer.length)];
+                    this.particles.push({
+                        x: sourceNode.x,
+                        y: sourceNode.y,
+                        targetX: targetNode.x,
+                        targetY: targetNode.y,
+                        progress: 0,
+                        life: 1,
+                        speed: 0.015
+                    });
+                }
+            }
+        }
+        
+        // Update particles smoothly (time-scaled)
         this.particles = this.particles.filter(p => {
             if (!p) return false;
-            p.progress = Math.min(1, (p.progress || 0) + (p.speed || 0.015));
-            p.life = Math.max(0, (p.life || 1) - 0.008);
+            p.progress = Math.min(1, (p.progress || 0) + (p.speed || 0.015) * dtFrames);
+            p.life = Math.max(0, (p.life || 1) - 0.008 * dtFrames);
             return p.life > 0 && p.progress < 1;
         });
+        
+        // Only reset once we've reached the last layer; otherwise hold near completion
+        if (this.cycleProgress >= 1.0) {
+            if (this.currentLayer >= totalLayers - 1) {
+                this.cycleProgress = 0;
+                this.currentLayer = 0;
+                this.layerProgress = 0;
+                // Clear particles
+                this.particles = [];
+                // Reset all nodes
+                this.layers.forEach(layer => {
+                    if (!layer) return;
+                    layer.forEach(node => {
+                        if (!node) return;
+                        node.activation = 0;
+                        node.targetActivation = 0;
+                    });
+                });
+                // Activate input layer
+                if (this.layers[0]) {
+                    this.layers[0].forEach(node => {
+                        if (node) node.targetActivation = 0.8 + Math.random() * 0.2;
+                    });
+                }
+                return;
+            } else {
+                this.cycleProgress = 1.0 - 1e-6;
+            }
+        }
     }
     
     draw() {
@@ -2641,7 +2716,7 @@ function initDeepPerceptron() {
     if (!deepPerceptronViz) {
         deepPerceptronViz = new DeepPerceptronVisualizer(canvas);
     } else {
-        deepPerceptronViz.resize();
+        deepPerceptronViz.resize(true);
     }
     
     if (!deepPerceptronInitialized) {
@@ -2668,11 +2743,19 @@ function initDeepPerceptron() {
     deepPerceptronViz.draw();
 }
 
-function animateDeepPerceptron() {
+let deepLastTime = 0;
+function animateDeepPerceptron(currentTime = 0) {
     if (!state.deepPerceptron.running || state.currentDemo !== 'deep-perceptron') return;
     
+    const frameMs = 1000 / 60;
+    let dtFrames = 1;
+    if (deepLastTime) {
+        dtFrames = Math.max(0.5, Math.min(3, (currentTime - deepLastTime) / frameMs));
+    }
+    deepLastTime = currentTime;
+    
     if (deepPerceptronViz) {
-        deepPerceptronViz.update();
+        deepPerceptronViz.update(dtFrames, state.deepPerceptron.speed);
         deepPerceptronViz.draw();
     }
     
@@ -2690,11 +2773,12 @@ class NormalizingFlowVisualizer {
         this.layers = [];
         this.particles = [];
         this.spawnTimer = 0;
-        this.resize();
+        this.resize(true);
         this.setupLayers();
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
         this.setupLayers();
@@ -2855,7 +2939,7 @@ function initNormalizingFlow() {
     if (!normalizingFlowViz) {
         normalizingFlowViz = new NormalizingFlowVisualizer(canvas);
     } else {
-        normalizingFlowViz.resize();
+        normalizingFlowViz.resize(true);
     }
     
     if (!normalizingFlowInitialized) {
@@ -2902,11 +2986,12 @@ class VAEVisualizer {
         this.particles = [];
         this.currentLayer = 0;
         this.dataFlowTimer = 0;
-        this.resize();
+        this.resize(true);
         this.setupLayers();
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
         this.setupLayers();
@@ -2942,17 +3027,21 @@ class VAEVisualizer {
         });
     }
     
-    update() {
-        // Smooth decay for all nodes
+    update(dtFrames = 1, speed = (typeof state !== 'undefined' && state.vae ? state.vae.speed : 3)) {
+        // Halve the effective speed
+        const speedFactor = 0.5 * Math.max(0.25, speed / 3);
+        // Smooth decay for all nodes (time-scaled)
         this.layers.forEach(layer => {
             layer.forEach(node => {
-                node.activation *= 0.92;
+                node.activation *= Math.pow(0.92, dtFrames);
             });
         });
         
-        // Linear layer-by-layer flow
-        this.dataFlowTimer++;
-        if (this.dataFlowTimer === 1 || this.dataFlowTimer % 15 === 0) {
+        // Linear layer-by-layer flow (time-scaled)
+        this.dataFlowTimer += dtFrames * speedFactor;
+        // About every 15 frames at 60fps (0.25s baseline), advance flow
+        while (this.dataFlowTimer >= 15) {
+            this.dataFlowTimer -= 15;
             if (this.currentLayer < this.layers.length - 1) {
                 const sourceLayer = this.layers[this.currentLayer];
                 const targetLayer = this.layers[this.currentLayer + 1];
@@ -2983,8 +3072,8 @@ class VAEVisualizer {
         
         // Update particles with smooth easing
         this.particles = this.particles.filter(p => {
-            p.progress += 0.08;
-            p.life -= 0.02;
+            p.progress += 0.08 * dtFrames * speedFactor;
+            p.life -= 0.02 * dtFrames;
             
             // Activate target when particle arrives
             if (p.progress >= 0.9 && p.targetNode) {
@@ -3070,7 +3159,7 @@ function initVAE() {
     if (!vaeViz) {
         vaeViz = new VAEVisualizer(canvas);
     } else {
-        vaeViz.resize();
+        vaeViz.resize(true);
     }
     
     if (!vaeInitialized) {
@@ -3097,15 +3186,18 @@ function initVAE() {
     vaeViz.draw();
 }
 
-function animateVAE() {
+let vaeLastTime = 0;
+function animateVAE(currentTime = 0) {
     if (!state.vae.running || state.currentDemo !== 'vae') return;
-    
-    vaeViz.update();
+    const frameMs = 1000 / 60;
+    let dtFrames = 1;
+    if (vaeLastTime) {
+        dtFrames = Math.max(0.5, Math.min(3, (currentTime - vaeLastTime) / frameMs));
+    }
+    vaeLastTime = currentTime;
+    vaeViz.update(dtFrames, state.vae.speed);
     vaeViz.draw();
-    
-    setTimeout(() => {
-        requestAnimationFrame(animateVAE);
-    }, 1000 / state.vae.speed);
+    requestAnimationFrame(animateVAE);
 }
 
 // ====== CNN Encoder-Decoder Visualization ======
@@ -3118,11 +3210,13 @@ class CNNEncoderDecoderVisualizer {
         this.ctx = canvas.getContext('2d');
         this.featureMaps = [];
         this.particles = [];
-        this.resize();
+        this.dataFlowTimer = 0; // measured in 60fps frames
+        this.resize(true);
         this.setupMaps();
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
         this.setupMaps();
@@ -3168,31 +3262,32 @@ class CNNEncoderDecoderVisualizer {
         });
     }
     
-    update() {
-        // Smooth activation decay (only for nodes that were hit)
+    update(dtFrames = 1, speed = (typeof state !== 'undefined' && state.cnnEncoderDecoder ? state.cnnEncoderDecoder.speed : 3)) {
+        const speedFactor = Math.max(0.25, speed / 3);
+        // Smooth activation decay (only for nodes that were hit) – keep activations alive longer
         this.featureMaps.forEach(maps => {
             maps.forEach(map => {
                 if (map.activation > 0) {
-                    map.activation *= 0.90;
+                    map.activation *= Math.pow(0.96, dtFrames);
                     if (map.activation < 0.05) map.activation = 0;
                 }
             });
         });
         
-        // Linear data flow: process one layer at a time
-        this.dataFlowTimer++;
-        
-        // Activate first layer initially and create first particles
-        if (this.dataFlowTimer === 1) {
+        // Linear data flow: process one layer at a time (time-scaled)
+        this.dataFlowTimer += dtFrames * speedFactor;
+        // Activate first layer initially
+        if (this.currentLayer === -1 && this.dataFlowTimer > 0) {
             this.currentLayer = 0;
             // Activate all nodes in first layer
             this.featureMaps[0].forEach(map => {
-                map.activation = 0.9;
+                map.activation = 1.0;
             });
         }
         
-        // Every 25 frames, move to next layer (smoother flow timing)
-        if ((this.dataFlowTimer === 1 || this.dataFlowTimer % 25 === 0) && this.currentLayer >= 0 && this.currentLayer < this.featureMaps.length - 1) {
+        // Every ~15 frames, move to next layer (faster so activations remain above threshold)
+        while (this.dataFlowTimer >= 15 && this.currentLayer >= 0 && this.currentLayer < this.featureMaps.length - 1) {
+            this.dataFlowTimer -= 15;
             const sourceLayer = this.currentLayer;
             const targetLayer = this.currentLayer + 1;
             
@@ -3202,7 +3297,7 @@ class CNNEncoderDecoderVisualizer {
             
             // Only create particles from ACTIVE source maps
             sourceMaps.forEach((sourceMap, sourceIdx) => {
-                if (sourceMap.activation > 0.3) { // Only if node is active
+                if (sourceMap.activation > 0.1) { // More permissive so flow always continues
                     const numParticles = Math.ceil(targetMaps.length / sourceMaps.length);
                     for (let i = 0; i < numParticles; i++) {
                         const targetIdx = Math.floor(Math.random() * targetMaps.length);
@@ -3219,11 +3314,41 @@ class CNNEncoderDecoderVisualizer {
                             targetLayer: targetLayer,
                             targetMapIndex: targetIdx
                         });
+                        // Proactively activate target so it can emit on the next step
+                        targetMap.activation = Math.max(targetMap.activation, 0.8);
                     }
                 }
             });
             
             this.currentLayer++;
+        }
+        
+        // Between steps, emit a small number of particles continuously from current layer to next
+        if (this.currentLayer >= 0 && this.currentLayer < this.featureMaps.length - 1) {
+            const sourceMaps = this.featureMaps[this.currentLayer];
+            const targetMaps = this.featureMaps[this.currentLayer + 1];
+            const spawnChance = 0.18 * Math.min(3, dtFrames) * speedFactor;
+            if (Math.random() < spawnChance) {
+                // Pick an active source map
+                const activeSources = sourceMaps.filter(m => m.activation > 0.1);
+                if (activeSources.length > 0) {
+                    const s = activeSources[Math.floor(Math.random() * activeSources.length)];
+                    const tIdx = Math.floor(Math.random() * targetMaps.length);
+                    const t = targetMaps[tIdx];
+                    this.particles.push({
+                        x: s.x + s.width / 2,
+                        y: s.y + s.height / 2,
+                        targetX: t.x + t.width / 2,
+                        targetY: t.y + t.height / 2,
+                        progress: 0,
+                        life: 1,
+                        sourceLayer: this.currentLayer,
+                        targetLayer: this.currentLayer + 1,
+                        targetMapIndex: tIdx
+                    });
+                    t.activation = Math.max(t.activation, 0.7);
+                }
+            }
         }
         
         // Reset after completing the flow
@@ -3234,8 +3359,8 @@ class CNNEncoderDecoderVisualizer {
         
         // Update particles and activate ONLY target maps that are hit
         this.particles = this.particles.filter(p => {
-            p.progress += 0.035; // Smoother, more controlled particle movement
-            p.life -= 0.02; // Slower life decay for better visibility
+            p.progress += 0.035 * dtFrames * speedFactor; // time-scaled
+            p.life -= 0.02 * dtFrames; // time-scaled
             
             // Activate target map when particle is close to arriving
             if (p.progress >= 0.75 && p.progress < 0.85) {
@@ -3332,7 +3457,7 @@ function initCNNEncoderDecoder() {
     if (!cnnViz) {
         cnnViz = new CNNEncoderDecoderVisualizer(canvas);
     } else {
-        cnnViz.resize();
+        cnnViz.resize(true);
     }
     
     if (!cnnInitialized) {
@@ -3359,21 +3484,17 @@ function initCNNEncoderDecoder() {
     cnnViz.draw();
 }
 
-let cnnLastFrameTime = 0;
-const CNN_BASE_FRAME_DELAY = 1000 / 60; // Target 60fps for smooth animation
-
+let cnnLastTime = 0;
 function animateCNN(currentTime = 0) {
     if (!state.cnnEncoderDecoder.running || state.currentDemo !== 'cnn-encoder-decoder') return;
-    
-    // Calculate time-based throttling for speed control
-    const targetDelay = CNN_BASE_FRAME_DELAY * (10 / state.cnnEncoderDecoder.speed);
-    
-    if (currentTime - cnnLastFrameTime >= targetDelay) {
-        cnnViz.update();
-        cnnViz.draw();
-        cnnLastFrameTime = currentTime;
+    const frameMs = 1000 / 60;
+    let dtFrames = 1;
+    if (cnnLastTime) {
+        dtFrames = Math.max(0.5, Math.min(3, (currentTime - cnnLastTime) / frameMs));
     }
-    
+    cnnLastTime = currentTime;
+    cnnViz.update(dtFrames, state.cnnEncoderDecoder.speed);
+    cnnViz.draw();
     requestAnimationFrame(animateCNN);
 }
 
@@ -3390,11 +3511,12 @@ class Mamba2Visualizer {
         this.particles = [];
         this.currentLayer = 0;
         this.dataFlowTimer = 0;
-        this.resize();
+        this.resize(true);
         this.setupLayers();
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
         this.setupLayers();
@@ -3558,7 +3680,7 @@ function initMamba2() {
     if (!mamba2Viz) {
         mamba2Viz = new Mamba2Visualizer(canvas);
     } else {
-        mamba2Viz.resize();
+        mamba2Viz.resize(true);
     }
     
     if (!mamba2Initialized) {
@@ -3610,11 +3732,12 @@ class CUDAVisualizer {
         this.blocks = [];
         this.globalMemory = [];
         this.currentPhase = 'idle'; // idle, load, compute, store
-        this.resize();
+        this.resize(true);
         this.setupArchitecture();
     }
     
-    resize() {
+    resize(force = false) {
+        if (!force && !shouldHandleResize()) return;
         this.canvas.width = this.canvas.offsetWidth;
         this.canvas.height = this.canvas.offsetHeight;
         this.setupArchitecture();
@@ -3727,8 +3850,10 @@ class CUDAVisualizer {
         }
     }
     
-    update() {
-        this.animationTime++;
+    update(dtFrames = 1, speed = (typeof state !== 'undefined' && state.cuda ? state.cuda.speed : 3)) {
+        // Halve the effective speed
+        const speedFactor = 0.5 * Math.max(0.25, speed / 3);
+        this.animationTime += dtFrames * speedFactor;
         const cycle = this.animationTime % this.cycleDuration;
         
         // Determine global phase based on cycle - shorter, more balanced phases
@@ -4049,7 +4174,7 @@ function initCUDA() {
     if (!cudaViz) {
         cudaViz = new CUDAVisualizer(canvas);
     } else {
-        cudaViz.resize();
+        cudaViz.resize(true);
     }
     
     if (!cudaInitialized) {
@@ -4076,15 +4201,20 @@ function initCUDA() {
     cudaViz.draw();
 }
 
-function animateCUDA() {
+let cudaLastTime = 0;
+function animateCUDA(currentTime = 0) {
     if (!state.cuda.running || state.currentDemo !== 'cuda') return;
     
-    cudaViz.update();
-    cudaViz.draw();
+    const frameMs = 1000 / 60;
+    let dtFrames = 1;
+    if (cudaLastTime) {
+        dtFrames = Math.max(0.5, Math.min(3, (currentTime - cudaLastTime) / frameMs));
+    }
+    cudaLastTime = currentTime;
     
-    setTimeout(() => {
-        requestAnimationFrame(animateCUDA);
-    }, 1000 / state.cuda.speed);
+    cudaViz.update(dtFrames, state.cuda.speed);
+    cudaViz.draw();
+    requestAnimationFrame(animateCUDA);
 }
 
 // @license-end

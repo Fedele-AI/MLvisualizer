@@ -41,6 +41,43 @@ let currentInstrument = 0; // 0 = Robo, 1 = Piano, 2 = Guitar
 let currentSampleRate = 44100;
 let currentTargetDuration = 12;
 
+// Mobile viewport-aware resize guard for this page to avoid thrashing on scroll
+let _nm_lastViewport = { w: 0, h: 0 };
+let _nm_lastVVEventTime = 0; // timestamp of last visualViewport scroll/resize
+const _nm_COOLDOWN_MS = 450; // be more aggressive: wait ~450ms after VV events
+function _nm_isMobileViewport() {
+    try {
+        return (window.matchMedia && window.matchMedia('(max-width: 1024px)').matches) || (navigator.maxTouchPoints && navigator.maxTouchPoints > 1);
+    } catch (_) { return true; }
+}
+
+function _nm_shouldHandleResize() {
+    const w = window.innerWidth || document.documentElement.clientWidth;
+    const h = window.innerHeight || document.documentElement.clientHeight;
+    if (_nm_lastViewport.w === 0 && _nm_lastViewport.h === 0) { _nm_lastViewport = { w, h }; return true; }
+    if (!_nm_isMobileViewport()) { _nm_lastViewport = { w, h }; return true; }
+    // During visualViewport scroll/resize, defer handling until cooldown passes
+    const now = Date.now();
+    if (now - _nm_lastVVEventTime < _nm_COOLDOWN_MS) {
+        return false;
+    }
+    const widthChanged = Math.abs(w - _nm_lastViewport.w) > 4;
+    // Height threshold increased to be more aggressive against toolbar show/hide
+    const heightChangedSignificant = Math.abs(h - _nm_lastViewport.h) > 180;
+    const orientationChanged = (w > h) !== (_nm_lastViewport.w > _nm_lastViewport.h);
+    if (widthChanged || heightChangedSignificant || orientationChanged) { _nm_lastViewport = { w, h }; return true; }
+    return false;
+}
+
+// Track visual viewport changes to suppress redraws during scroll/zoom
+try {
+    if (window.visualViewport) {
+        const markVVEvent = () => { _nm_lastVVEventTime = Date.now(); };
+        window.visualViewport.addEventListener('resize', markVVEvent, { passive: true });
+        window.visualViewport.addEventListener('scroll', markVVEvent, { passive: true });
+    }
+} catch (_) { /* noop */ }
+
 // Mobile-specific audio playback using HTMLAudioElement (more reliable on iOS)
 let mobileAudioElement = null;
 let mobileAudioBlobUrl = null;
@@ -1858,7 +1895,9 @@ mobileWarningPopup.addEventListener('click', (e) => {
 // Redraw waveform on window resize
 let resizeTimeout;
 window.addEventListener('resize', () => {
+    if (!_nm_shouldHandleResize()) return;
     clearTimeout(resizeTimeout);
+    // Slightly longer debounce for aggressive thrash reduction
     resizeTimeout = setTimeout(() => {
         if (currentBuffer) {
             drawWaveform(currentBuffer);
@@ -1872,7 +1911,7 @@ window.addEventListener('resize', () => {
                 drawWaveformPlayhead(progress);
             }
         }
-    }, 100);
+    }, 250);
 });
 
 // Initialize WASM immediately when DOM is ready - start loading ASAP
