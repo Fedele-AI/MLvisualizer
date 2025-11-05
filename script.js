@@ -3339,6 +3339,8 @@ function initCNNEncoderDecoder() {
         cnnInitialized = true;
         
         document.getElementById('cnn-start').addEventListener('click', () => {
+            // Ensure canvas is visible while animation runs (desktop only)
+            scrollIntoViewIfDesktop('cnn-canvas');
             state.cnnEncoderDecoder.running = !state.cnnEncoderDecoder.running;
             document.getElementById('cnn-start').textContent = 
                 state.cnnEncoderDecoder.running ? 'Pause Processing' : 'Process Image';
