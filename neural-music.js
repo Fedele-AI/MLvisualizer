@@ -1,4 +1,4 @@
-// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&dn=gpl-3.0.txt GPL-v3-or-Later
+// @license magnet:?xt=urn:btih:1f739d935676111cfff4b4693e3816e664797050&dn=gpl-3.0.txt GPL-3.0
 /**
  * Neural Music Generator - AI-powered music generation visualizer
  * Copyright (C) 2024 Kenneth (Alex) Jenkins
