@@ -8,7 +8,7 @@
 
 **Interactive demonstrations of AI and machine learning architectures**
 
-[🚀 Launch Demo](https://mlvisualizer.org/) • [📖 Documentation](#-learn-more) • [🎵 Music Transformer](https://mlvisualizer.org/neural-music.html)
+[🚀 Launch Demo](https://mlvisualizer.org/) • [📖 Documentation](#learn-more) • [🎵 Music Transformer](https://mlvisualizer.org/neural-music.html)
 
 </div>
 
