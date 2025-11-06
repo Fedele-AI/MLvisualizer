@@ -1681,10 +1681,11 @@ let transformerViz = null;
 let transformerInitialized = false;
 let toyLMBuilt = false;
 
-// Simple toy language model (unigram + bigram) for next-token prediction
+// Enhanced toy language model (unigram + bigram + trigram) for next-token prediction
 const toyLM = {
     unigram: new Map(),
     bigram: new Map(),
+    trigram: new Map(),
     vocab: new Set(),
     total: 0,
     sos: '<s>',
@@ -1693,52 +1694,258 @@ const toyLM = {
 
 function tokenize(text) {
     if (!text) return [];
+    // Improved tokenization to preserve contractions and handle more cases
     const matches = text.toLowerCase().match(/[\w']+|[.,!?;:]/g);
     return matches ? matches : [];
 }
 
 function buildToyLanguageModel() {
     if (toyLMBuilt) return;
+    // Significantly expanded corpus with diverse topics and natural patterns
     const corpus = [
+        // Food and preferences
+        'i like pizza that has cheese',
+        'i like pizza that is hot',
+        'i like pizza with pepperoni',
+        'i love pizza that tastes great',
+        'pizza is my favorite food',
+        'pizza that has mushrooms is good',
+        'i like burgers that are juicy',
+        'i like pasta that is fresh',
+        'i love food that tastes good',
+        'i eat pizza every week',
+        'my favorite food is pizza',
+        'my favorite drink is coffee',
+        'my favorite color is blue',
+        'your favorite movie is interesting',
+        'their favorite song is popular',
+        
+        // Personal relationships and feelings
+        'my best friend is cool',
+        'my best friend is awesome',
+        'my best friend lives nearby',
+        'my best day was yesterday',
+        'my best work is here',
+        'your best effort is appreciated',
+        'his best friend is loyal',
+        'her best friend is kind',
+        'our best hope is tomorrow',
+        'their best team won today',
+        'my good friend is smart',
+        'my close friend is helpful',
+        'my old friend is wise',
+        'i have a friend who helps',
+        'i know someone who cares',
+        'my family is wonderful',
+        'my family loves me dearly',
+        'my mom is the best',
+        'my dad is very kind',
+        'my sister is really funny',
+        'my brother is quite tall',
+        
+        // Animals and nature
         'the cat sat on the mat',
         'the dog sat on the rug',
         'the cat chased the mouse',
         'the dog chased the cat',
-        'a cat likes fish',
-        'a dog likes bones',
-        'the mat was soft and comfortable',
-        'the rug was red and warm',
-        'the cat slept peacefully',
-        'the dog barked loudly',
-        'cats and dogs are animals',
-        'attention helps pick the next token',
-        'transformers predict the next token',
-        'machine learning is fascinating',
-        'neural networks learn patterns',
-        'the model generates text',
-        'artificial intelligence is powerful',
-        'deep learning requires data',
-        'the algorithm processes information',
-        'language models understand context',
+        'a cat likes fish that is fresh',
+        'a dog likes bones that are big',
         'the cat is sleeping now',
         'the dog is running fast',
-        'machine learning models are trained',
-        'neural networks use backpropagation',
-        'the transformer uses attention',
-        'attention mechanisms are important',
-        'i love machine learning',
-        'i think neural networks',
-        'i like transformers',
-        'what is machine learning',
-        'what are neural networks',
-        'how does attention work',
-        'why use transformers',
-        'this is amazing',
-        'this model works',
-        'the sun is shining',
-        'the moon is bright',
-        'the sky is blue',
-        'the grass is green'
+        'cats and dogs are animals',
+        'the bird is flying high',
+        'the sun is shining bright',
+        'the moon is bright tonight',
+        'the sky is blue today',
+        'the grass is green and lush',
+        'the trees are tall and strong',
+        'my pet is very cute',
+        'my dog is really playful',
+        'my cat is always sleeping',
+        
+        // Machine learning and AI
+        'attention helps pick the next token',
+        'transformers predict the next token',
+        'machine learning is fascinating and powerful',
+        'neural networks learn patterns from data',
+        'the model generates text that makes sense',
+        'artificial intelligence is powerful and useful',
+        'deep learning requires lots of data',
+        'the algorithm processes information quickly',
+        'language models understand context well',
+        'machine learning models are trained carefully',
+        'neural networks use backpropagation effectively',
+        'the transformer uses attention mechanisms',
+        'attention mechanisms are very important',
+        'i love machine learning because it works',
+        'i think neural networks are amazing',
+        'i like transformers that generate text',
+        'what is machine learning exactly',
+        'what are neural networks made of',
+        'how does attention work in transformers',
+        'why use transformers for language',
+        'my project uses deep learning',
+        'my research focuses on ai',
+        'my work involves neural networks',
+        
+        // Common phrases and continuations
+        'this is amazing and wonderful',
+        'this model works very well',
+        'that is interesting to know',
+        'that makes sense to me',
+        'that has been done before',
+        'that was great to see',
+        'the way it works is simple',
+        'the way that looks is nice',
+        'i am learning about transformers',
+        'i am studying machine learning',
+        'i was thinking about that',
+        'i was wondering if you know',
+        'you are doing great work',
+        'you can do that easily',
+        'we are working on this',
+        'we can make it better',
+        'they are building new models',
+        'they have done amazing work',
+        'my idea is working well',
+        'my plan is to succeed',
+        'my goal is to learn',
+        'my hope is that you understand',
+        'my dream is to help',
+        'my wish is for peace',
+        
+        // Personal experiences
+        'i went to the store',
+        'i went to school today',
+        'i saw a movie yesterday',
+        'i read a book recently',
+        'i built something new today',
+        'i learned something interesting today',
+        'i found a great solution',
+        'i discovered something amazing',
+        'i created a new project',
+        'i finished my work early',
+        'my life is going well',
+        'my day was really good',
+        'my week has been busy',
+        'my year was very productive',
+        'my time here is valuable',
+        'my experience has been positive',
+        
+        // Questions and statements
+        'what do you think about that',
+        'what can we do next',
+        'where is the data stored',
+        'when will it be ready',
+        'how does that work exactly',
+        'why is this important now',
+        'who made that decision there',
+        'which model is better overall',
+        'what is your name exactly',
+        'what is your favorite thing',
+        'where do you live now',
+        'when did that happen exactly',
+        'how are you doing today',
+        'why did you choose that',
+        'who is your best friend',
+        
+        // Descriptive phrases
+        'is very good for this',
+        'is really important to know',
+        'is quite interesting to see',
+        'has been tested thoroughly',
+        'has many uses today',
+        'was created recently by experts',
+        'was made to solve problems',
+        'can be used for many things',
+        'could be better with changes',
+        'should work well for this',
+        'would be nice to have',
+        'will help us understand more',
+        'is absolutely wonderful and great',
+        'is incredibly useful for us',
+        'is surprisingly effective today',
+        'was unexpectedly good yesterday',
+        
+        // Activities and hobbies
+        'i love playing video games',
+        'i enjoy reading good books',
+        'i like watching great movies',
+        'i love listening to music',
+        'i enjoy writing creative stories',
+        'i like cooking delicious food',
+        'i love traveling to places',
+        'i enjoy learning new things',
+        'my hobby is playing guitar',
+        'my hobby is painting pictures',
+        'my passion is helping others',
+        'my interest is in science',
+        
+        // Emotions and opinions
+        'i feel happy about that',
+        'i feel excited for tomorrow',
+        'i think that is correct',
+        'i think you are right',
+        'i believe we can succeed',
+        'i believe in your ability',
+        'i know this is true',
+        'i understand your point clearly',
+        'my opinion is that it works',
+        'my feeling is that we should',
+        'my sense is that things improve',
+        'my belief is that people care',
+        
+        // Time and place
+        'today is a great day',
+        'today is very special indeed',
+        'tomorrow will be better hopefully',
+        'yesterday was quite interesting actually',
+        'now is the right time',
+        'here is the best place',
+        'there is a good option',
+        'everywhere i look i see',
+        'sometimes i wonder about things',
+        'always remember to be kind',
+        'never give up on dreams',
+        'my morning was very productive',
+        'my afternoon is looking good',
+        'my evening will be relaxing',
+        'my night was peaceful and quiet',
+        
+        // School and learning
+        'my teacher is very helpful',
+        'my class is really interesting',
+        'my school is quite large',
+        'my homework is almost done',
+        'my grades are improving steadily',
+        'my studies are going well',
+        'i study computer science daily',
+        'i learn new concepts regularly',
+        'the lesson was very clear',
+        'the course is well designed',
+        
+        // Technology and computers
+        'my computer is running fast',
+        'my phone is very useful',
+        'my laptop is brand new',
+        'my code is working correctly',
+        'my program runs smoothly now',
+        'my app is almost finished',
+        'the software is really powerful',
+        'the system works efficiently today',
+        'the internet is very fast',
+        'the technology is quite advanced',
+        
+        // Transitions and connectors
+        'and then we can see',
+        'but that is not all',
+        'or we could try something',
+        'so we should continue forward',
+        'because it makes sense logically',
+        'when you think about it',
+        'if you look at that',
+        'that means we can proceed',
+        'which means it works well'
     ];
 
     for (const line of corpus) {
@@ -1748,10 +1955,22 @@ function buildToyLanguageModel() {
             toyLM.vocab.add(t);
             toyLM.unigram.set(t, (toyLM.unigram.get(t) || 0) + 1);
             toyLM.total++;
+            
+            // Bigram
             if (i > 0) {
                 const prev = tokens[i - 1];
                 if (!toyLM.bigram.has(prev)) toyLM.bigram.set(prev, new Map());
                 const row = toyLM.bigram.get(prev);
+                row.set(t, (row.get(t) || 0) + 1);
+            }
+            
+            // Trigram (for better context)
+            if (i > 1) {
+                const prev2 = tokens[i - 2];
+                const prev1 = tokens[i - 1];
+                const key = `${prev2}|${prev1}`;
+                if (!toyLM.trigram.has(key)) toyLM.trigram.set(key, new Map());
+                const row = toyLM.trigram.get(key);
                 row.set(t, (row.get(t) || 0) + 1);
             }
         }
@@ -1769,26 +1988,113 @@ function softmax(logits) {
 function predictNextTokens(prompt, temperature = 1.0, topK = 5) {
     buildToyLanguageModel();
     const tokens = tokenize(prompt);
-    const last = tokens.length ? tokens[tokens.length - 1] : toyLM.sos;
-
-    let dist = new Map();
-    if (toyLM.bigram.has(last)) {
-        // Use bigram distribution if we have seen this context
-        dist = new Map(toyLM.bigram.get(last));
-    } else {
-        // Fallback to unigram distribution (excluding sos)
+    
+    if (tokens.length === 0) {
+        // Start of sequence
+        const dist = new Map();
         toyLM.unigram.forEach((c, t) => {
-            if (t !== toyLM.sos) dist.set(t, c);
+            if (t !== toyLM.sos && t !== toyLM.eos) dist.set(t, c);
         });
+        return formatPredictions(dist, temperature, topK);
     }
+    
+    // Try trigram first (best context)
+    if (tokens.length >= 2) {
+        const prev2 = tokens[tokens.length - 2];
+        const prev1 = tokens[tokens.length - 1];
+        const key = `${prev2}|${prev1}`;
+        
+        if (toyLM.trigram.has(key)) {
+            const dist = new Map(toyLM.trigram.get(key));
+            // If we have enough trigram data, use it
+            const totalCount = Array.from(dist.values()).reduce((a, b) => a + b, 0);
+            if (totalCount >= 2) {
+                return formatPredictions(dist, temperature, topK);
+            }
+        }
+    }
+    
+    // Fall back to bigram
+    const last = tokens[tokens.length - 1];
+    if (toyLM.bigram.has(last)) {
+        const dist = new Map(toyLM.bigram.get(last));
+        const totalCount = Array.from(dist.values()).reduce((a, b) => a + b, 0);
+        if (totalCount >= 1) {
+            return formatPredictions(dist, temperature, topK);
+        }
+    }
+    
+    // Final fallback: intelligent unigram with context awareness
+    // Filter tokens that commonly follow the part of speech of the last token
+    const dist = new Map();
+    
+    // Determine likely next token type based on last token
+    const commonFollowers = getCommonFollowers(last);
+    
+    toyLM.unigram.forEach((c, t) => {
+        if (t !== toyLM.sos && t !== toyLM.eos) {
+            // Boost tokens that commonly follow this type of word
+            let boost = 1.0;
+            if (commonFollowers.has(t)) {
+                boost = 3.0;
+            }
+            dist.set(t, c * boost);
+        }
+    });
+    
+    return formatPredictions(dist, temperature, topK);
+}
 
-    // Convert counts to logits and apply temperature (log-count smoothing)
-    const entries = Array.from(dist.entries());
+function getCommonFollowers(word) {
+    // Simple heuristic to determine what typically follows different word types
+    const followers = new Set();
+    
+    const verbs = ['is', 'are', 'was', 'were', 'has', 'have', 'can', 'could', 'should', 'will', 'would', 'like', 'love', 'think', 'know', 'see', 'make', 'get', 'do', 'does'];
+    const determiners = ['the', 'a', 'an', 'that', 'this', 'these', 'those'];
+    const prepositions = ['of', 'to', 'in', 'on', 'at', 'for', 'with', 'about', 'that'];
+    const adjectives = ['good', 'great', 'big', 'small', 'new', 'old', 'important', 'interesting', 'amazing', 'powerful'];
+    const nouns = ['cat', 'dog', 'pizza', 'food', 'model', 'network', 'learning', 'data', 'work', 'way', 'time', 'thing'];
+    
+    if (determiners.includes(word)) {
+        // After determiners, expect nouns or adjectives
+        adjectives.forEach(w => followers.add(w));
+        nouns.forEach(w => followers.add(w));
+    } else if (adjectives.includes(word)) {
+        // After adjectives, expect nouns
+        nouns.forEach(w => followers.add(w));
+    } else if (verbs.includes(word)) {
+        // After verbs, expect nouns, adjectives, or prepositions
+        nouns.forEach(w => followers.add(w));
+        adjectives.forEach(w => followers.add(w));
+        prepositions.forEach(w => followers.add(w));
+    } else if (nouns.includes(word)) {
+        // After nouns, expect verbs or prepositions
+        verbs.forEach(w => followers.add(w));
+        prepositions.forEach(w => followers.add(w));
+    } else if (prepositions.includes(word) || word === 'that') {
+        // After prepositions, expect determiners or nouns
+        determiners.forEach(w => followers.add(w));
+        nouns.forEach(w => followers.add(w));
+    }
+    
+    return followers;
+}
+
+function formatPredictions(dist, temperature, topK) {
+    // Convert counts to logits and apply temperature
+    const entries = Array.from(dist.entries()).filter(([t, c]) => c > 0);
+    
+    if (entries.length === 0) {
+        return [];
+    }
+    
+    // Use log smoothing and temperature
     const logits = entries.map(([t, c]) => Math.log(1 + c) / Math.max(temperature, 0.05));
     const probs = softmax(logits);
     const scored = entries.map(([t], i) => ({ token: t, prob: probs[i] }))
         .sort((a, b) => b.prob - a.prob)
         .slice(0, Math.max(1, Math.min(10, topK)));
+    
     return scored;
 }
 

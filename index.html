@@ -560,7 +560,8 @@
                         <ul style="margin: 8px 0 0 0; padding-left: 20px;">
                             <li><strong>Temperature</strong> controls randomness: Low (0.2) = focused/repetitive, High (2.0) = creative/chaotic</li>
                             <li><strong>Top-k</strong> limits choices: Lower = more predictable, Higher = more variety</li>
-                            <li>Try starting with phrases like "the cat", "machine learning", or "i think"</li>
+                            <li>Try phrases like "i like pizza that", "the cat", "machine learning is", or "i think"</li>
+                            <li>Click "Append" to add predictions and build longer sentences iteratively!</li>
                         </ul>
                     </div>
                 </div>
@@ -591,7 +592,7 @@
                 </div>
 
                 <p class="description">
-                    In practice, a Transformer takes the tokens you've typed and outputs a probability distribution over the next token. This demo uses a simple bigram language model (it looks at the last word to predict the next one). Real transformers use self-attention to consider ALL previous tokens with different weights, making them much more powerful. Pick a predicted token, append it, and repeat - that's how chat, translation, and code generation work! Try typing a few words and watch the model predict what might come next based on patterns it learned from example sentences.
+                    In practice, a Transformer takes the tokens you've typed and outputs a probability distribution over the next token. This demo uses a trigram/bigram language model that looks at the last 1-2 words to predict what comes next, with intelligent fallbacks for unseen phrases. Real transformers use self-attention to consider ALL previous tokens with different weights, making them vastly more powerful. The model has learned patterns from diverse example sentences about food, animals, machine learning, and everyday conversations. Try typing phrases like "i like pizza that" or "machine learning is" to see contextually relevant predictions!
                 </p>
 
                 <div class="citation-box">
