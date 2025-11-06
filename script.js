@@ -2201,17 +2201,18 @@ class TransformerVisualizer {
         const layerColors = ['#4A90E2', '#f57f17', '#9B59B6', '#E74C3C', '#27AE60'];
         const layerNames = ['Prompt', 'Context', 'Scores', 'Softmax', 'Next'];
         
-        // Responsive node radius and padding with extra space on right for predicted token display
+        // Responsive node radius and padding
         const nodeRadius = Math.max(10, Math.min(15, this.canvas.width / 50));
-        const leftPadding = Math.max(80, Math.min(120, this.canvas.width / 10));
-        const rightPadding = Math.max(140, Math.min(180, this.canvas.width / 6)); // Extra space for token display
+        // Increased right padding to accommodate predicted token text
+        const paddingLeft = Math.max(60, Math.min(100, this.canvas.width / 10));
+        const paddingRight = Math.max(120, Math.min(180, this.canvas.width / 6));
         
         this.layers = [];
-        const layerSpacing = (this.canvas.width - leftPadding - rightPadding) / (layerCount - 1);
+        const layerSpacing = (this.canvas.width - paddingLeft - paddingRight) / (layerCount - 1);
         
         for (let l = 0; l < layerCount; l++) {
             const nodes = [];
-            const x = leftPadding + l * layerSpacing;
+            const x = paddingLeft + l * layerSpacing;
             const verticalSpacing = (this.canvas.height - 120) / tokenCount;
             
             for (let t = 0; t < tokenCount; t++) {
@@ -2711,10 +2712,7 @@ function initTransformer() {
             transformerViz.setTokens(['<start>']);
             transformerViz.setPredictions([]);
             
-            // Clear particles and reset all layer activations
-            transformerViz.particles = [];
-            transformerViz.phase = 0;
-            transformerViz.phaseProgress = 0;
+            // Clear all layer activations
             if (transformerViz.layers) {
                 transformerViz.layers.forEach(layer => {
                     layer.forEach(node => {
@@ -2723,6 +2721,11 @@ function initTransformer() {
                     });
                 });
             }
+            
+            // Clear particles
+            transformerViz.particles = [];
+            
+            // Force redraw to clear visualization
             transformerViz.draw();
             
             // Reset character counter
