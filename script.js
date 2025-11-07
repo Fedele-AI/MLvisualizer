@@ -217,6 +217,10 @@ function showDemo(demoName) {
     state.currentView = 'demo';
     state.currentDemo = demoName;
     
+    // Scroll to top for all modules except neural music
+    if (demoName !== 'neural-music') {
+        window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    }
     // Wait for DOM update, then initialize the specific demo's visualization
     setTimeout(() => {
         switch(demoName) {
