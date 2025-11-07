@@ -111,7 +111,9 @@ const state = {
     transformer: {
         running: false,
         speed: 3,
-        phase: 'idle'
+        phase: 'idle',
+        eosCount: 0,  // Track consecutive </s> tokens
+        autoGenerating: false  // Track if we're in auto-generation mode
     },
     deepPerceptron: {
         running: false,
@@ -1703,6 +1705,28 @@ function tokenize(text) {
     return matches ? matches : [];
 }
 
+// Get random starter phrases for auto-generation
+function getRandomStarter() {
+    const starters = [
+        'i like',
+        'i love',
+        'i think',
+        'the cat',
+        'the dog',
+        'my friend',
+        'what is',
+        'this is',
+        'machine learning',
+        'neural networks',
+        'the sky',
+        'pizza is',
+        'music is',
+        'today is',
+        'i want'
+    ];
+    return starters[Math.floor(Math.random() * starters.length)];
+}
+
 function buildToyLanguageModel() {
     if (toyLMBuilt) return;
     // Significantly expanded corpus with diverse topics and natural patterns
@@ -2208,7 +2232,7 @@ class TransformerVisualizer {
         // Responsive node radius and padding
         const nodeRadius = Math.max(10, Math.min(15, this.canvas.width / 50));
         // Increased right padding to accommodate predicted token text
-        const paddingLeft = Math.max(60, Math.min(100, this.canvas.width / 10));
+        const paddingLeft = Math.max(90, Math.min(130, this.canvas.width / 10 + 30)); // Added 30px for "<start>" text spacing
         const paddingRight = Math.max(120, Math.min(180, this.canvas.width / 6));
         
         this.layers = [];
@@ -2641,6 +2665,11 @@ function initTransformer() {
         const charCounter = document.getElementById('char-counter');
 
         const doPredict = () => {
+            // Stop auto-generation when user manually predicts
+            const wasAutoGenerating = state.transformer.autoGenerating;
+            state.transformer.autoGenerating = false;
+            state.transformer.eosCount = 0;
+            
             // Keep the visualization in view on desktop while interacting
             scrollIntoViewIfDesktop('transformer-canvas', { behavior: 'smooth', block: 'center' });
             // Add loading state
@@ -2659,6 +2688,9 @@ function initTransformer() {
                 // Update append button to show what will be appended
                 if (preds.length > 0 && preds[0].token !== toyLM.eos) {
                     appendBtn.textContent = `➕ Append "${preds[0].token}"`;
+                    appendBtn.disabled = false;
+                } else if (preds.length > 0 && preds[0].token === toyLM.eos) {
+                    appendBtn.textContent = `➕ Append "${toyLM.eos}"`;
                     appendBtn.disabled = false;
                 } else {
                     appendBtn.textContent = '➕ Append top prediction';
@@ -2697,10 +2729,76 @@ function initTransformer() {
             }
         });
         appendBtn.addEventListener('click', () => {
-            const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), 1);
+            // If input is empty and append is enabled, start auto-generation with random prompt
+            if (!inputEl.value.trim() && !appendBtn.disabled) {
+                state.transformer.autoGenerating = true;
+                state.transformer.eosCount = 0;
+                inputEl.value = getRandomStarter();
+                inputEl.dispatchEvent(new Event('input'));
+                doPredict();
+                setTimeout(() => {
+                    if (state.transformer.autoGenerating && !appendBtn.disabled) {
+                        appendBtn.click();
+                    }
+                }, 800);
+                return;
+            }
+            
+            const preds = predictNextTokens(inputEl.value, parseFloat(tempEl.value), 5);
             if (preds.length > 0) {
-                const tok = preds[0].token;
-                if (tok === toyLM.eos) return;
+                // Sample from the predictions based on their probabilities instead of always picking the top one
+                const rand = Math.random();
+                let cumulative = 0;
+                let tok = preds[0].token;
+                for (const pred of preds) {
+                    cumulative += pred.prob;
+                    if (rand <= cumulative) {
+                        tok = pred.token;
+                        break;
+                    }
+                }
+                
+                // Check if it's an end-of-sequence token
+                if (tok === toyLM.eos) {
+                    state.transformer.eosCount++;
+                    
+                    // After 2-3 </s> tokens, restart with a random prompt
+                    if (state.transformer.eosCount >= 2 + Math.floor(Math.random() * 2)) {
+                        state.transformer.eosCount = 0;
+                        state.transformer.autoGenerating = true;
+                        
+                        // Clear and start with random prompt
+                        setTimeout(() => {
+                            inputEl.value = getRandomStarter();
+                            inputEl.dispatchEvent(new Event('input'));
+                            doPredict();
+                            
+                            // Continue auto-generating
+                            setTimeout(() => {
+                                if (state.transformer.autoGenerating) {
+                                    appendBtn.click();
+                                }
+                            }, 800);
+                        }, 500);
+                    } else {
+                        // Append </s> and continue
+                        inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + tok;
+                        inputEl.dispatchEvent(new Event('input'));
+                        doPredict();
+                        
+                        // Auto-continue to trigger next prediction
+                        setTimeout(() => {
+                            if (state.transformer.autoGenerating) {
+                                appendBtn.click();
+                            }
+                        }, 800);
+                    }
+                    return;
+                } else {
+                    // Reset EOS counter when we get a non-EOS token
+                    state.transformer.eosCount = 0;
+                }
+                
                 inputEl.value = (inputEl.value ? inputEl.value + ' ' : '') + tok;
                 
                 // Trigger input event to update counter
@@ -2708,9 +2806,20 @@ function initTransformer() {
                 
                 // Auto-predict after appending
                 doPredict();
+                
+                // If in auto-generation mode, continue appending
+                if (state.transformer.autoGenerating && inputEl.value.split(/\s+/).length < 20) {
+                    setTimeout(() => {
+                        if (state.transformer.autoGenerating && !appendBtn.disabled) {
+                            appendBtn.click();
+                        }
+                    }, 800);
+                }
             }
         });
         clearBtn.addEventListener('click', () => {
+            state.transformer.autoGenerating = false;
+            state.transformer.eosCount = 0;
             inputEl.value = '';
             updateTransformerResults([]);
             transformerViz.setTokens(['<start>']);
