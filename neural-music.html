@@ -6,6 +6,11 @@
     <title>Neural Music Generator</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎵</text></svg>">
     <link rel="stylesheet" href="neural-music.css">
+    <!-- KaTeX for beautiful math rendering -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" integrity="sha384-+VBxd3r6XgURycqtZ117nYw44OOcIax56Z4dCRWbxyPt0Koah1uHoK0o4+/RRE05" crossorigin="anonymous"
+        onload="renderMathInElement(document.body, {delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}]});"></script>
 </head>
 <body>
     <!-- Back Button -->
@@ -369,21 +374,21 @@
 
                 <h3>The Math Behind Transformers</h3>
                 <p>At the heart of every transformer is the <strong>attention mechanism</strong>, which uses these mathematical operations:</p>
-                <p style="background: #f7fafc; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; margin: 16px 0;">
-                    <strong>Attention(Q, K, V)</strong> = softmax(<sup>QK<sup>T</sup></sup>&frasl;<sub>√d<sub>k</sub></sub>) V
-                </p>
-                <p style="background: #f0e6ff; padding: 20px; border-radius: 8px; font-family: 'Courier New', monospace; overflow-x: auto; margin: 16px 0; line-height: 2;">
-                    <strong>Breaking down softmax:</strong><br><br>
-                    softmax(z<sub>i</sub>) = <sup>e<sup>z<sub>i</sub></sup></sup>&frasl;<sub>Σ<sub>j=1</sub><sup>n</sup> e<sup>z<sub>j</sub></sup></sub><br><br>
-                    where z = <sup>QK<sup>T</sup></sup>&frasl;<sub>√d<sub>k</sub></sub>
-                </p>
+                <div class="math-formula-box">
+                    $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V$$
+                </div>
+                <div class="math-formula-box secondary">
+                    <p><strong>Breaking down softmax:</strong></p>
+                    $$\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_{j=1}^{n} e^{z_j}}$$
+                    <p style="margin-top: 16px;">where $z = \frac{QK^T}{\sqrt{d_k}}$</p>
+                </div>
                 <p><strong>What does this mean in plain English?</strong></p>
                 <p>
                     The softmax function is the "decision maker" that turns raw scores into probabilities. Here's how it works:
                 </p>
                 <ul>
-                    <li><strong>e<sup>z<sub>i</sub></sup></strong> (Euler's number to the power of each score) - Amplifies differences between scores. High scores become much higher, low scores stay low.</li>
-                    <li><strong>Σ (Sigma)</strong> - Sums up all the amplified scores across all positions (j=1 to n)</li>
+                    <li><strong>$e^{z_i}$</strong> (Euler's number to the power of each score) - Amplifies differences between scores. High scores become much higher, low scores stay low.</li>
+                    <li><strong>$\Sigma$ (Sigma)</strong> - Sums up all the amplified scores across all positions (j=1 to n)</li>
                     <li><strong>Division</strong> - Each amplified score is divided by the total, guaranteeing all values sum to exactly 1.0 (a perfect probability distribution)</li>
                 </ul>
                 <p>
@@ -399,10 +404,10 @@
                 </p>
                 <p><strong>Key matrices explained:</strong></p>
                 <ul>
-                    <li><strong>Q</strong> (Query) = "What am I looking for?" (the current musical context)</li>
-                    <li><strong>K</strong> (Key) = "What do I have available?" (all previous notes in memory)</li>
-                    <li><strong>V</strong> (Value) = "What's the actual musical information?" (the note frequencies and patterns)</li>
-                    <li><strong>d<sub>k</sub></strong> = Dimension of the key vectors (prevents numbers from getting too large)</li>
+                    <li><strong>$Q$</strong> (Query) = "What am I looking for?" (the current musical context)</li>
+                    <li><strong>$K$</strong> (Key) = "What do I have available?" (all previous notes in memory)</li>
+                    <li><strong>$V$</strong> (Value) = "What's the actual musical information?" (the note frequencies and patterns)</li>
+                    <li><strong>$d_k$</strong> = Dimension of the key vectors (prevents numbers from getting too large)</li>
                 </ul>
                 <p>
                     This formula calculates how much "attention" each note should pay to every other note in the sequence, 
