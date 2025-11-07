@@ -40,6 +40,55 @@ Each demo includes:
 
 ---
 
+## File structure
+
+Repository tree (top-level). Use this as a quick reference:
+
+```
+MLvisualizer/
+├── .gitignore               # Files and patterns ignored by Git
+├── .nojekyll                # Disable Jekyll processing on GitHub Pages
+├── .github/                 # GitHub actions, issue templates, and CI configs
+├── Cargo.toml               # Rust crate manifest (dependencies and metadata)
+├── Cargo.lock               # Locked dependency versions for reproducible builds
+├── LICENSE.md               # Project license (GPL-3.0)
+├── sitemap.xml              # Project sitemap for search engines
+├── sitemap.xsl              # Stylesheet for sitemap.xml
+├── README.md                # Project overview and documentation (this file)
+├── index.html               # Main landing page for the demo
+├── CNAME                    # Custom domain name for GitHub Pages
+├── robots.txt               # Search engine crawling instructions
+├── css/                     # Stylesheets
+│   ├── styles.css           # Global site styles
+│   └── neural-music.css     # Styles for the music demo
+├── html/                    # Standalone HTML demo pages and fragments
+│   ├── neural-music.html    # Music Transformer demo page (audio + visualization)
+│   └── jslicense.html       # License fragment included in HTML pages
+├── js/                      # Front-end JavaScript (visualizers and site scripts)
+│   ├── core.js              # Core visualization helpers and utilities
+│   ├── script.js            # Site initialization and glue code
+│   ├── neural-music.js      # Music demo UI and integration with wasm pkg
+│   ├── visualizers-basic.js # Basic visualization implementations
+│   └── visualizers-advanced.js # Advanced visualization implementations
+├── pkg/                     # Generated WebAssembly artifacts and JS wrappers
+│   ├── music_transformer.js # Browser import wrapper for the wasm module
+│   ├── music_transformer.d.ts # TypeScript definitions for the wrapper
+│   ├── music_transformer_bg.wasm # Compiled wasm binary
+│   ├── music_transformer_bg.wasm.d.ts # Wasm type declarations
+│   └── package.json         # pkg metadata for the generated package
+├── src/                     # Rust source code for the Music Transformer
+│   └── lib.rs               # Core Rust implementation and wasm bindings
+├── target/                  # Cargo build artifacts and compiled outputs
+└── tools/                   # Build and maintenance utilities
+	├── build.sh             # Local build/packaging helper script
+	└── CODE_OF_CONDUCT.md   # Contribution guidelines and conduct policy
+```
+
+Notes:
+
+- `pkg/` and `target/` are generated build outputs. Do not edit files in these folders directly; change the source files under `src/`, `js/`, `css/`, and `html/` and regenerate artifacts via the build scripts.
+- `pkg/` contains the WebAssembly wrapper and related artifacts used by the browser; it includes generated binaries, JS wrappers, and TypeScript definitions. The `bark.wav` file is an easter-egg and is not needed for normal development or packaging.
+
 ## Neural Music Transformer Demo 
 
 This project includes a real, working transformer-like sequence model implemented in Rust and compiled to WebAssembly for the browser. It uses an attention mechanism over previously generated notes to produce short melodic phrases, and then synthesizes audio samples on the fly.

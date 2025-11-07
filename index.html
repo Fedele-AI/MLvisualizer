@@ -94,7 +94,7 @@
         })();
         // @license-end
     </script>
-    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
     <!-- Info Button -->
@@ -269,7 +269,7 @@
                     </div>
                 </div>
 
-                <a href="neural-music.html" class="demo-card wide" style="text-decoration: none; color: inherit;">
+                <a href="html/neural-music.html" class="demo-card wide" style="text-decoration: none; color: inherit;">
                     <div class="demo-icon">🎵</div>
                     <h3>Neural Music Generator</h3>
                     <p>Transformer-based architecture that generates original melodies using self-attention mechanisms and sequential pattern learning</p>
@@ -1055,12 +1055,12 @@
                 catSpeech.style.display = 'none';
                 
                 // Create and play bark sound from WAV file twice
-                const barkAudio = new Audio('src/dog-barking.wav');
+                const barkAudio = new Audio('pkg/bark.wav');
                 barkAudio.play();
                 
                 // Play the sound again after the first one finishes
                 barkAudio.addEventListener('ended', function() {
-                    const secondBark = new Audio('src/dog-barking.wav');
+                    const secondBark = new Audio('pkg/bark.wav');
                     secondBark.play();
                 }, { once: true });
                 
@@ -1089,7 +1089,14 @@
         // @license-end
     </script>
 
-    <script src="script.js"></script>
+    <!-- Core utilities and navigation -->
+    <script src="js/core.js"></script>
+    
+    <!-- Basic neural network visualizers -->
+    <script src="js/visualizers-basic.js"></script>
+    
+    <!-- Advanced neural network visualizers -->
+    <script src="js/visualizers-advanced.js"></script>
     
     <!-- 100% privacy-first analytics -->
     <script data-collect-dnt="true" async src="https://scripts.simpleanalyticscdn.com/latest.js"></script>
