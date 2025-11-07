@@ -30,7 +30,8 @@
 </head>
 <body>
     <!-- Link to JavaScript Web Labels page so LibreJS knows about external script licenses -->
-    <a href="../html/jslicense.html" data-jslicense="1" style="display:none">JavaScript license information</a>
+    <!-- Use rel="jslicense" and keep the link reachable (off-screen) so LibreJS can find it reliably -->
+    <a href="/html/jslicense.html" rel="jslicense" data-jslicense="1" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;">JavaScript license information</a>
     <!-- Back Button -->
     <a href="../index.html" class="back-button" title="Back to home">🔙</a>
     
